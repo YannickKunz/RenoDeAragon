@@ -149,14 +149,14 @@ void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
     player.canJump = false;
   }
 
-	Vector2 playerPosition = {player.position.x - player.size.x / 2,
-		player.position.y - player.size.y};
-	DrawRectangleV(playerPosition, player.size, BLUE);
-	// DrawCircleV(player.position, 5.0f, GOLD);
-	DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
-			player.position.y - player.size.y,
-			player.size.x, player.size.y},
-			2.0f, BLACK);
+    Vector2 playerPosition = {player.position.x - player.size.x / 2,
+        player.position.y - player.size.y};
+    DrawRectangleV(playerPosition, player.size, BLUE);
+    // DrawCircleV(player.position, 5.0f, GOLD);
+    DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
+            player.position.y - player.size.y,
+            player.size.x, player.size.y},
+            2.0f, BLACK);
 }
 
 int main () {
@@ -187,7 +187,10 @@ int main () {
   int platformsLength = sizeof(platforms) / sizeof(platforms[0]);
 
   Enemy enemy = {{platforms[0].x, platforms[0].y}, {30, 30}};
-  GameScreen currentScreen = GAMEPLAY;
+  
+  // FIXED: Removed duplicate 'currentScreen' definition
+  GameScreen currentScreen = LOGO;
+
     // --- INIT CLOUDS ---
     Cloud clouds[] = {
         { {100, 250, 200, 40}, 150.0f, 50, 600, true },   // Low cloud
@@ -204,7 +207,7 @@ int main () {
   // --- SETUP STAR DONUT ---
   StarDonutState donutState; 
   InitStarDonut(&donutState, screenWidth, screenHeight);
-	GameScreen currentScreen = LOGO;
+  
   int currentLevel = 0;              // Track current level (used on GAMEPLAY screen) 
   bool exitGame = false;             // Track when the user wants to exit the game
 
@@ -347,6 +350,7 @@ int main () {
                  screenHeight / 2 + 50, 30, YELLOW);
 
     } break;
+    // FIXED: Merged duplicate GAMEPLAY case here
     case GAMEPLAY: {
       DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
       DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40,
@@ -362,176 +366,159 @@ int main () {
           std::to_string(player.position.y) +
           "\nToggle: " + std::to_string(player.toggle) +
           ", Time: " + std::to_string(player.toggleCooldown);
-				} break;
-			case GAMEPLAY:
-				{
-					DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
-
-                    
-                    DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40, MAROON);
-					DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", screenWidth/2 - MeasureText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 20)/2, screenHeight - 100, 20, MAROON);
-					// draw some text using the default font
-					std::string debugText = "Debug coordinates: " + std::to_string(player.position.x) 
-						+ ", " + std::to_string(player.position.y)
-						+ "\nToggle: " + std::to_string(player.toggle)
-						+ ", Time: " + std::to_string(player.toggleCooldown);
-
+      
       DrawText(debugText.c_str(), 10, 10, 20, WHITE);
 
+      // FIXED: Used proper arguments for updatePlayer
       updatePlayer(player, platforms, platformsLength, enemy, delta, spawnPoint);
+      
       for (int i = 0; i < platformsLength; i++) {
         Rectangle rec = platforms[i];
         DrawRectangleRec(rec, GRAY);
       }
 
       updateEnemy(enemy, platforms[0], delta);
-					DrawText(debugText.c_str(), 10, 10, 20, WHITE);
-                    // --- 1. UPDATE & DRAW CLOUDS ---
-                    for (int i = 0; i < cloudsLength; i++) {
-                        // Move Cloud
-                        if (clouds[i].movingRight) {
-                            clouds[i].rect.x += clouds[i].speed * GetFrameTime();
-                            if (clouds[i].rect.x > clouds[i].rightLimit) clouds[i].movingRight = false;
-                        } else {
-                            clouds[i].rect.x -= clouds[i].speed * GetFrameTime();
-                            if (clouds[i].rect.x < clouds[i].leftLimit) clouds[i].movingRight = true;
-                        }
-                        
-                        // Draw Cloud
-                        DrawRectangleRec(clouds[i].rect, Fade(SKYBLUE, 0.9f));
-                        DrawRectangleLinesEx(clouds[i].rect, 2, WHITE);
-                    }
-                    // -------------------------------
-					updatePlayer(player, platforms, platformsLength);
 
+      // --- 1. UPDATE & DRAW CLOUDS ---
+      for (int i = 0; i < cloudsLength; i++) {
+          // Move Cloud
+          if (clouds[i].movingRight) {
+              clouds[i].rect.x += clouds[i].speed * GetFrameTime();
+              if (clouds[i].rect.x > clouds[i].rightLimit) clouds[i].movingRight = false;
+          } else {
+              clouds[i].rect.x -= clouds[i].speed * GetFrameTime();
+              if (clouds[i].rect.x < clouds[i].leftLimit) clouds[i].movingRight = true;
+          }
+          
+          // Draw Cloud
+          DrawRectangleRec(clouds[i].rect, Fade(SKYBLUE, 0.9f));
+          DrawRectangleLinesEx(clouds[i].rect, 2, WHITE);
+      }
+      // -------------------------------
+      
+      // Removed duplicate call to updatePlayer
 
+      // 2. CLOUD RIDING LOGIC
+      // We check if player is falling (speed > 0) or standing, and if they hit a cloud
+      if (player.speed >= 0) {
+          for (int i = 0; i < cloudsLength; i++) {
+              Rectangle plat = clouds[i].rect;
+              // Check if player is within horizontal bounds of cloud
+              if (plat.x <= player.position.x && (plat.x + plat.width) >= player.position.x) {
+                  // Check vertical collision (landing on top)
+                  // We use a small threshold because updatePlayer might have just moved us
+                  if (player.position.y >= plat.y && player.position.y <= (plat.y + 10.0f)) {
+                      
+                      player.speed = 0.0f;
+                      player.position.y = plat.y;
+                      player.canJump = true; 
+                      
+                      // Move Player with Cloud
+                      float moveAmount = clouds[i].speed * GetFrameTime();
+                      if (clouds[i].movingRight) player.position.x += moveAmount;
+                      else player.position.x -= moveAmount;
 
-                    // 2. CLOUD RIDING LOGIC (Moved to main)
-                    // We check if player is falling (speed > 0) or standing, and if they hit a cloud
-                    if (player.speed >= 0) {
-                        for (int i = 0; i < cloudsLength; i++) {
-                            Rectangle plat = clouds[i].rect;
-                            // Check if player is within horizontal bounds of cloud
-                            if (plat.x <= player.position.x && (plat.x + plat.width) >= player.position.x) {
-                                // Check vertical collision (landing on top)
-                                // We use a small threshold because updatePlayer might have just moved us
-                                if (player.position.y >= plat.y && player.position.y <= (plat.y + 10.0f)) {
-                                    
-                                    player.speed = 0.0f;
-                                    player.position.y = plat.y;
-                                    player.canJump = true; 
-                                    
-                                    // Move Player with Cloud
-                                    float moveAmount = clouds[i].speed * GetFrameTime();
-                                    if (clouds[i].movingRight) player.position.x += moveAmount;
-                                    else player.position.x -= moveAmount;
+                      break; 
+                  }
+              }
+          }
+      }
 
-                                    break; 
-                                }
-                            }
-                        }
-                    }
+      // --- 4. SUNLIGHT RAYCASTING ---
+      Vector2 sunPos = { 500.0f, -50.0f }; 
+      DrawCircleV(sunPos, 40, YELLOW); // Draw Sun
 
-					// --- 3. DRAW PLATFORMS ---
-                    for (int i = 0; i < platformsLength; i++) {
-                        DrawRectangleRec(platforms[i], GRAY);
-                    }
+      // Prepare 3D boxes
+      BoundingBox playerBox3D = {
+          (Vector3){ player.position.x - player.size.x/2, player.position.y - player.size.y, -10 },
+          (Vector3){ player.position.x + player.size.x/2, player.position.y, 10 }
+      };
 
-                    // --- 4. SUNLIGHT RAYCASTING ---
-                    Vector2 sunPos = { 500.0f, -50.0f }; 
-                    DrawCircleV(sunPos, 40, YELLOW); // Draw Sun
+      bool anyRayHitPlayer = false;
 
-                    // Prepare 3D boxes
-                    BoundingBox playerBox3D = {
-                        (Vector3){ player.position.x - player.size.x/2, player.position.y - player.size.y, -10 },
-                        (Vector3){ player.position.x + player.size.x/2, player.position.y, 10 }
-                    };
+      // Cast rays
+      for (int x = -200; x <= screenWidth + 200; x += 40) 
+      {
+          Vector2 targetPos = { (float)x, (float)screenHeight };
+          Vector3 sunOrigin3D = { sunPos.x, sunPos.y, 0 };
+          Vector3 rayDir = { targetPos.x - sunPos.x, targetPos.y - sunPos.y, 0 };
+          float len = sqrt(rayDir.x*rayDir.x + rayDir.y*rayDir.y);
+          if (len == 0) continue;
+          rayDir.x /= len; rayDir.y /= len;
+          Ray currentRay = { sunOrigin3D, rayDir };
 
-                    bool anyRayHitPlayer = false;
+          float nearestDist = 2000.0f; 
+          bool hitPlayer = false;
+          Color rayColor = Fade(YELLOW, 0.15f);
 
-                    // Cast rays
-                    for (int x = -200; x <= screenWidth + 200; x += 40) 
-                    {
-                        Vector2 targetPos = { (float)x, (float)screenHeight };
-                        Vector3 sunOrigin3D = { sunPos.x, sunPos.y, 0 };
-                        Vector3 rayDir = { targetPos.x - sunPos.x, targetPos.y - sunPos.y, 0 };
-                        float len = sqrt(rayDir.x*rayDir.x + rayDir.y*rayDir.y);
-                        if (len == 0) continue;
-                        rayDir.x /= len; rayDir.y /= len;
-                        Ray currentRay = { sunOrigin3D, rayDir };
+          // A. Check Player
+          RayCollision playerHit = GetRayCollisionBox(currentRay, playerBox3D);
+          if (playerHit.hit) {
+              if (playerHit.distance < nearestDist) {
+                  nearestDist = playerHit.distance;
+                  hitPlayer = true;
+              }
+          }
 
-                        float nearestDist = 2000.0f; 
-                        bool hitPlayer = false;
-                        Color rayColor = Fade(YELLOW, 0.15f);
+          // B. Check Static Platforms
+          for (int i = 0; i < platformsLength; i++) {
+              BoundingBox platBox = {
+                  (Vector3){ platforms[i].x, platforms[i].y, -10 },
+                  (Vector3){ platforms[i].x + platforms[i].width, platforms[i].y + platforms[i].height, 10 }
+              };
+              RayCollision platHit = GetRayCollisionBox(currentRay, platBox);
+              if (platHit.hit) {
+                  if (platHit.distance < nearestDist) {
+                      nearestDist = platHit.distance;
+                      hitPlayer = false; // Shadow
+                  }
+              }
+          }
 
-                        // A. Check Player
-                        RayCollision playerHit = GetRayCollisionBox(currentRay, playerBox3D);
-                        if (playerHit.hit) {
-                            if (playerHit.distance < nearestDist) {
-                                nearestDist = playerHit.distance;
-                                hitPlayer = true;
-                            }
-                        }
+          // C. Check Clouds (Shadows)
+          for (int i = 0; i < cloudsLength; i++) {
+              BoundingBox cloudBox = {
+                  (Vector3){ clouds[i].rect.x, clouds[i].rect.y, -10 },
+                  (Vector3){ clouds[i].rect.x + clouds[i].rect.width, clouds[i].rect.y + clouds[i].rect.height, 10 }
+              };
+              RayCollision cloudHit = GetRayCollisionBox(currentRay, cloudBox);
+              if (cloudHit.hit) {
+                  if (cloudHit.distance < nearestDist) {
+                      nearestDist = cloudHit.distance;
+                      hitPlayer = false; // Cloud blocked the light
+                  }
+              }
+          }
 
-                        // B. Check Static Platforms
-                        for (int i = 0; i < platformsLength; i++) {
-                            BoundingBox platBox = {
-                                (Vector3){ platforms[i].x, platforms[i].y, -10 },
-                                (Vector3){ platforms[i].x + platforms[i].width, platforms[i].y + platforms[i].height, 10 }
-                            };
-                            RayCollision platHit = GetRayCollisionBox(currentRay, platBox);
-                            if (platHit.hit) {
-                                if (platHit.distance < nearestDist) {
-                                    nearestDist = platHit.distance;
-                                    hitPlayer = false; // Shadow
-                                }
-                            }
-                        }
+          // Draw Ray
+          Vector2 endPos = { 
+              sunPos.x + rayDir.x * nearestDist, 
+              sunPos.y + rayDir.y * nearestDist 
+          };
 
-                        // C. Check Clouds (Shadows) <--- THIS WAS MISSING HERE
-                        for (int i = 0; i < cloudsLength; i++) {
-                            BoundingBox cloudBox = {
-                                (Vector3){ clouds[i].rect.x, clouds[i].rect.y, -10 },
-                                (Vector3){ clouds[i].rect.x + clouds[i].rect.width, clouds[i].rect.y + clouds[i].rect.height, 10 }
-                            };
-                            RayCollision cloudHit = GetRayCollisionBox(currentRay, cloudBox);
-                            if (cloudHit.hit) {
-                                if (cloudHit.distance < nearestDist) {
-                                    nearestDist = cloudHit.distance;
-                                    hitPlayer = false; // Cloud blocked the light
-                                }
-                            }
-                        }
+          if (hitPlayer) {
+              rayColor = Fade(RED, 0.6f);
+              anyRayHitPlayer = true;
+          }
 
-                        // Draw Ray
-                        Vector2 endPos = { 
-                            sunPos.x + rayDir.x * nearestDist, 
-                            sunPos.y + rayDir.y * nearestDist 
-                        };
+          DrawLineEx(sunPos, endPos, 30.0f, rayColor);
+          if (hitPlayer) DrawCircleV(endPos, 3, RED);
+      }
+      
+      // --- 5. PARTICLES & LOGIC ---
+      isPlayerBurning = anyRayHitPlayer;
+      UpdateParticles(&particleSystem);
+              
+      if (isPlayerBurning) {
+          Vector2 center = { player.position.x, player.position.y - player.size.y/2 };
+          EmitParticle(&particleSystem, center, FIRE);
+          EmitParticle(&particleSystem, center, FIRE);
+          DrawText("BURNING!", screenWidth/2, 50, 40, RED);
+      } else {
+          DrawText("SAFE", screenWidth/2, 50, 40, GREEN);
+      }
 
-                        if (hitPlayer) {
-                            rayColor = Fade(RED, 0.6f);
-                            anyRayHitPlayer = true;
-                        }
-
-                        DrawLineEx(sunPos, endPos, 30.0f, rayColor);
-                        if (hitPlayer) DrawCircleV(endPos, 3, RED);
-                    }
-                    
-                    // --- 5. PARTICLES & LOGIC ---
-                    isPlayerBurning = anyRayHitPlayer;
-                    UpdateParticles(&particleSystem);
-                           
-                    if (isPlayerBurning) {
-                        Vector2 center = { player.position.x, player.position.y - player.size.y/2 };
-                        EmitParticle(&particleSystem, center, FIRE);
-                        EmitParticle(&particleSystem, center, FIRE);
-                        DrawText("BURNING!", screenWidth/2, 50, 40, RED);
-                    } else {
-                        DrawText("SAFE", screenWidth/2, 50, 40, GREEN);
-                    }
-
-                    DrawParticles(&particleSystem);
+      DrawParticles(&particleSystem);
 
     } break;
     case PAUSE: {
