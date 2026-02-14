@@ -14,7 +14,6 @@ typedef struct Platform {
 	PlatformType type;
 } Platform;
 
-// void activateMushroom(Player player, Platform& platform);
 void drawPlatform(Platform& platform) {
 	Color color;
 	if (platform.type == mushroom) {

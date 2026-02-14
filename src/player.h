@@ -6,6 +6,7 @@
 #define G 800
 #define JUMP_SPEED 600.0f
 #define MOVEMENT 200.0f
+#define MUSHROOM_COEFF 1.2f
 
 typedef struct Player {
 	Vector2 position;
@@ -74,9 +75,14 @@ void updatePlayer(Player& player, Platform* platforms, int platformsLength, cons
 			// Landing on top of platform (falling down)
 			if (player.speed > 0 && platformPosition.y >= player.position.y &&
 					platformPosition.y <= (player.position.y + player.speed * delta)) {
-				hitObstacle = true;
-				player.speed = 0.0f;
-				player.position.y = platformPosition.y;
+				if (platforms[i].type == mushroom) {
+						// jump
+					player.speed = - MUSHROOM_COEFF * JUMP_SPEED;
+				} else {
+					player.speed = 0.0f;
+					player.position.y = platformPosition.y;
+					hitObstacle = true;
+				}
 				break;
 			}
 			// Head hitting bottom of platform (jumping up)
