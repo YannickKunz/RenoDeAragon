@@ -2,12 +2,9 @@
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
 #include "star_donut.h"   // our star donut demo code
 #include <iostream>
-#include "enemy.cpp"
-
-#define TOGGLE_DELAY_SEC 2.0f
-#define G 800
-#define JUMP_SPEED 600.0f
-#define MOVEMENT 200.0f
+#include "player.h"
+#include "platform.h"
+#include "enemy.h"
 
 typedef enum GameScreen {
 	LOGO = 0,
@@ -18,112 +15,10 @@ typedef enum GameScreen {
 	CREDIT
 } GameScreen;
 
-typedef struct Player {
-	Vector2 position;
-	Vector2 size;
-	float speed;
-	bool canJump;
-	bool toggle;
-	float toggleCooldown;
-	int healthPoints;
-} Player;
-
 int currentLevel = 0;
 bool exitGame = false; // Track when the user wants to exit the game
 int titleMenuOption = 0;
 int pauseMenuOption = 0;
-
-void updatePlayer(Player& player, Rectangle *platforms, int platformsLength, const float delta) {
-	player.toggleCooldown += delta; // could this overflow?
-	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
-	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
-	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
-		player.toggle = !player.toggle;
-		player.toggleCooldown = 0.0f;
-	}
-	if (IsKeyDown(KEY_SPACE) && player.canJump) {
-		player.speed -= JUMP_SPEED;
-		player.canJump = false;
-	}
-
-	// Check horizontal collisions (player sides vs platform sides)
-	for (int i = 0; i < platformsLength; i++) {
-		Rectangle plat = platforms[i];
-		float playerLeft = player.position.x - player.size.x / 2;
-		float playerRight = player.position.x + player.size.x / 2;
-		float playerTop = player.position.y - player.size.y;
-		float playerBottom = player.position.y;
-
-		// Check if vertically overlapping
-		if (playerBottom > plat.y && playerTop < plat.y + plat.height) {
-			// Check if horizontally overlapping
-			if (playerRight > plat.x && playerLeft < plat.x + plat.width) {
-				// Push out from whichever side is closer
-				float overlapLeft = playerRight - plat.x;
-				float overlapRight = (plat.x + plat.width) - playerLeft;
-				if (overlapLeft < overlapRight) {
-					player.position.x = plat.x - player.size.x / 2; // push left
-				} else {
-					player.position.x =
-						plat.x + plat.width + player.size.x / 2; // push right
-				}
-			}
-		}
-	}
-
-	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
-		player.toggle = !player.toggle;
-		player.toggleCooldown = 0.0f;
-	}
-	if (IsKeyDown(KEY_SPACE) && player.canJump) {
-		player.speed -= JUMP_SPEED;
-		player.canJump = false;
-	}
-
-	// --- Vertical collision ---
-	bool hitObstacle = false;
-	for (int i = 0; i < platformsLength; i++) {
-		Rectangle plat = platforms[i];
-		float playerLeft = player.position.x - player.size.x / 2;
-		float playerRight = player.position.x + player.size.x / 2;
-		if (playerRight >= plat.x && playerLeft <= (plat.x + plat.width)) {
-			// Landing on top of platform (falling down)
-			if (player.speed > 0 && plat.y >= player.position.y &&
-					plat.y <= (player.position.y + player.speed * delta)) {
-				hitObstacle = true;
-				player.speed = 0.0f;
-				player.position.y = plat.y;
-				break;
-			}
-			// Head hitting bottom of platform (jumping up)
-			float playerHead = player.position.y - player.size.y;
-			float newHead = playerHead + player.speed * delta;
-			float platBottom = plat.y + plat.height;
-			if (player.speed < 0 && newHead <= platBottom &&
-					playerHead >= platBottom) {
-				player.speed = 0.0f;
-				player.position.y = platBottom + player.size.y;
-			}
-		}
-	}
-
-	if (hitObstacle) {
-		player.canJump = true;
-	} else {
-		player.position.y += player.speed * delta;
-		player.speed += G * delta;
-		player.canJump = false;
-	}
-
-	Vector2 playerPosition = {player.position.x - player.size.x / 2,
-		player.position.y - player.size.y};
-	DrawRectangleV(playerPosition, player.size, BLUE);
-	// DrawCircleV(player.position, 5.0f, GOLD);
-	DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
-			player.position.y - player.size.y,
-			player.size.x, player.size.y},
-			2.0f, BLACK);
-}
 
 int main() {
 	// Tell the window to use vsync and work on high DPI displays
@@ -139,19 +34,21 @@ int main() {
 
 	Player player = { 0 };
 	player.position = { 50, screenHeight - 100 };
-	player.size = { 50, 50 };
+	player.size = { 50, 100 };
 	player.toggleCooldown = 2.0f;
 	player.healthPoints = 10;
 
-	Rectangle platforms[] = {
-		{400, 600, 100, 10},
-		{600, 500, 100, 10},
-		{0, screenHeight - 50, screenWidth, 50},
+	Platform platforms[] = {
+		{ {400, 600, 100, 10}, basic},
+		{ {600, 500, 100, 10}, basic},
+		{ {0, screenHeight - 50, screenWidth, 50}, basic},
+		{ {screenWidth - 200, screenHeight - 100, MUSHROOM_WIDTH, MUSHROOM_HEIGHT}, mushroom},
+		{ {screenWidth - 400, screenHeight - 150, FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
 	};
 
 	int platformsLength = sizeof(platforms)/sizeof(platforms[0]);
 
-	Enemy enemy = { {platforms[0].x, platforms[0].y}, {30, 30} };
+	Enemy enemy = { {platforms[0].position.x, platforms[0].position.y}, {30, 30} };
 	GameScreen currentScreen = GAMEPLAY;
 
 	// --- SETUP STAR DONUT ---
@@ -320,11 +217,10 @@ int main() {
 
 							   updatePlayer(player, platforms, platformsLength, delta);
 							   for (int i = 0; i < platformsLength; i++) {
-								   Rectangle rec = platforms[i];
-								   DrawRectangleRec(rec, GRAY);
+								   drawPlatform(platforms[i]);
 							   }
 
-							   updateEnemy(enemy, platforms[0], delta);
+							   updateEnemy(enemy, platforms[0].position, delta);
 
 						   } break;
 			case PAUSE: {

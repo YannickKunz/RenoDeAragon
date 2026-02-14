@@ -1,5 +1,5 @@
-#include <iostream>
-
+#pragma once
+#include "raylib.h"
 #define ENEMY_SPEED 80.0f
 
 typedef struct Enemy {
@@ -20,5 +20,3 @@ void updateEnemy(Enemy& enemy, Rectangle& platform, const float delta) {
 	Vector2 enemyPosition = { enemy.position.x - enemy.size.x/2, enemy.position.y - enemy.size.y };
 	DrawRectangleV(enemyPosition, enemy.size, RED);
 }
-
-
