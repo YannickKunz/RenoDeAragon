@@ -18,6 +18,11 @@ typedef struct Player {
 	float toggleCooldown;
 } Player;
 
+int currentLevel = 0;
+bool exitGame = false;              // Track when the user wants to exit the game
+int titleMenuOption = 0;
+int pauseMenuOption = 0;
+
 void updatePlayer(Player& player, Rectangle (&platforms)[], int platformsLength) {
 	float delta = GetFrameTime();
 	player.toggleCooldown += delta; // could this overflow?
@@ -57,6 +62,102 @@ void updatePlayer(Player& player, Rectangle (&platforms)[], int platformsLength)
 	DrawRectangleV(playerPosition, player.size, BLUE);
 }
 
+GameScreen selectScreen(GameScreen currentScreen) {
+	switch (currentScreen) {
+		case LOGO: {
+					   static int framesCounter = 0;
+					   // TODO: Update LOGO screen variables here!
+					   framesCounter++;    // Count frames
+
+					   // Wait for 2 seconds (120 frames) before jumping to TITLE screen
+					   if (framesCounter > 60) {
+						   currentScreen = TITLE;
+					   }
+				   } break;
+		case TITLE:
+				   {
+					   // Simple Menu Navigation
+					   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) titleMenuOption++;
+					   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) titleMenuOption--;
+
+					   // Clamp options (0 to 1)
+					   if (titleMenuOption < 0) titleMenuOption = 1;
+					   if (titleMenuOption > 1) titleMenuOption = 0;
+
+					   if (IsKeyPressed(KEY_ENTER)) {
+						   if (titleMenuOption == 0) { // PLAY
+							   currentLevel = 1; // Reset level
+							   currentScreen = GAMEPLAY;
+						   }
+						   else if (titleMenuOption == 1) { // QUIT
+							   exitGame = true;
+						   }
+					   }
+				   } break;
+		case GAMEPLAY:
+				   {
+					   // TODO: Update GAMEPLAY screen variables here!
+					   if (IsKeyPressed(KEY_ESCAPE)) {
+						   currentScreen = PAUSE;
+						   pauseMenuOption = 0; // Reset pause menu option
+					   }
+					   // Press enter to change to ENDING screen
+					   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
+						   currentLevel++; // Increment level (just for demonstration, not used in this example)
+						   if (currentLevel > 3) {
+							   currentScreen = ENDING;
+						   }
+					   }
+				   } break;
+		case PAUSE:
+				   {
+					   // Simple Pause Menu Navigation
+					   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) pauseMenuOption++;
+					   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) pauseMenuOption--;
+
+					   // Clamp options (0 to 1)
+					   if (pauseMenuOption < 0) pauseMenuOption = 1;
+					   if (pauseMenuOption > 1) pauseMenuOption = 0;
+
+					   if (IsKeyPressed(KEY_ENTER)) {
+						   if (pauseMenuOption == 0) { // RESUME
+							   currentScreen = GAMEPLAY;
+						   }
+						   else if (pauseMenuOption == 1) { // QUIT TO TITLE
+							   currentScreen = TITLE;
+							   titleMenuOption = 0;
+						   }
+					   }
+					   if (IsKeyPressed(KEY_ESCAPE)) // Toggle back to game
+					   {
+						   currentScreen = GAMEPLAY;
+					   }
+
+				   } break;
+		case ENDING:
+				   {
+					   // TODO: Update ENDING screen variables here!
+
+					   // Press enter to return to TITLE screen
+					   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+					   {
+						   currentScreen = CREDIT;
+					   }
+				   } break;
+		case CREDIT:
+				   {
+					   DrawText("CREDITS SCREEN", 20, 20, 40, LIGHTGRAY);
+					   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+					   {
+						   currentScreen = TITLE;
+					   }
+				   } break;
+		default: break;
+	}
+
+	return currentScreen;
+}
+
 int main () {
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -82,121 +183,23 @@ int main () {
 
 	int platformsLength = sizeof(platforms)/sizeof(platforms[0]);
 
+	GameScreen currentScreen = LOGO;
+
 	// --- SETUP STAR DONUT ---
-	StarDonutState donutState; 
+	StarDonutState donutState;
 	InitStarDonut(&donutState, screenWidth, screenHeight);
 
-	GameScreen currentScreen = LOGO;
-	int currentLevel = 0;              // Track current level (used on GAMEPLAY screen) 
-	bool exitGame = false;              // Track when the user wants to exit the game
-
-	int titleMenuOption = 0;
-	int pauseMenuOption = 0;
-
-	int framesCounter = 0;          // Useful to count frames
-
 	while (!WindowShouldClose() && !exitGame) {		// run the loop until the user presses ESCAPE or presses the Close button on the window
-		// Update
-		switch (currentScreen) {
-			case LOGO: {
-						   // TODO: Update LOGO screen variables here!
+													// Update
+													//----------------------------------------------------------------------------------
+													// Drawing
+													//----------------------------------------------------------------------------------
+		currentScreen = selectScreen(currentScreen);
 
-						   framesCounter++;    // Count frames
-
-						   // Wait for 2 seconds (120 frames) before jumping to TITLE screen
-						   if (framesCounter > 120) {
-							   currentScreen = TITLE;
-						   }
-					   } break;
-			case TITLE:
-					   {
-						   // Simple Menu Navigation
-						   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) titleMenuOption++;
-						   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) titleMenuOption--;
-
-						   // Clamp options (0 to 1)
-						   if (titleMenuOption < 0) titleMenuOption = 1;
-						   if (titleMenuOption > 1) titleMenuOption = 0;
-
-						   if (IsKeyPressed(KEY_ENTER)) {
-							   if (titleMenuOption == 0) { // PLAY
-								   currentLevel = 1; // Reset level
-								   currentScreen = GAMEPLAY;
-							   }
-							   else if (titleMenuOption == 1) { // QUIT
-								   exitGame = true;
-							   }
-						   }
-					   } break;
-			case GAMEPLAY:
-					   {
-						   // TODO: Update GAMEPLAY screen variables here!
-						   if (IsKeyPressed(KEY_ESCAPE)) {
-							   currentScreen = PAUSE;
-							   pauseMenuOption = 0; // Reset pause menu option
-						   }
-						   // Press enter to change to ENDING screen
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
-							   currentLevel++; // Increment level (just for demonstration, not used in this example)
-							   if (currentLevel > 3) {
-								   currentScreen = ENDING;
-							   }
-						   }
-					   } break;
-			case PAUSE:
-					   {
-						   // Simple Pause Menu Navigation
-						   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) pauseMenuOption++;
-						   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) pauseMenuOption--;
-
-						   // Clamp options (0 to 1)
-						   if (pauseMenuOption < 0) pauseMenuOption = 1;
-						   if (pauseMenuOption > 1) pauseMenuOption = 0;
-
-						   if (IsKeyPressed(KEY_ENTER)) {
-							   if (pauseMenuOption == 0) { // RESUME
-								   currentScreen = GAMEPLAY;
-							   }
-							   else if (pauseMenuOption == 1) { // QUIT TO TITLE
-								   currentScreen = TITLE;
-								   titleMenuOption = 0;
-							   }
-						   }
-						   if (IsKeyPressed(KEY_ESCAPE)) // Toggle back to game
-						   {
-							   currentScreen = GAMEPLAY;
-						   }
-
-					   } break;
-			case ENDING:
-					   {
-						   // TODO: Update ENDING screen variables here!
-
-						   // Press enter to return to TITLE screen
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
-						   {
-							   currentScreen = CREDIT;
-						   }
-					   } break;
-			case CREDIT:
-					   {
-						   DrawText("CREDITS SCREEN", 20, 20, 40, LIGHTGRAY);
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
-						   {
-							   currentScreen = TITLE;
-						   }
-					   } break;
-			default: break;
-		}
-		//----------------------------------------------------------------------------------
-		// Drawing
-		//----------------------------------------------------------------------------------
 		BeginDrawing();
-
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
-		switch(currentScreen)
-		{
+		switch(currentScreen) {
 			case LOGO:
 				{
 					DrawStarDonut(&donutState, screenWidth, screenHeight);
@@ -205,7 +208,7 @@ int main () {
 				} break;
 			case TITLE:
 				{
-					DrawRectangle(0, 0, screenWidth, screenHeight, DARKGREEN);
+					DrawRectangle(0, 0, screenWidth, screenHeight, BLACK);
 					DrawText("TITLE SCREEN", screenWidth/2 - MeasureText("TITLE SCREEN", 30)/2, screenHeight/3, 30, YELLOW);
 
 					// Draw Menu
