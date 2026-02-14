@@ -3,6 +3,7 @@
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
 #include "star_donut.h"   // our star donut demo code
 #include <iostream>
+#include <vector>
 
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
@@ -28,13 +29,15 @@ typedef struct Player {
   int healthPoints;
 } Player;
 
-int currentLevel = 0;
-bool exitGame = false; // Track when the user wants to exit the game
-int titleMenuOption = 0;
-int pauseMenuOption = 0;
+struct Level {
+  Vector2 spawnPoint;
+  Enemy enemy;
+  std::vector<Rectangle> platforms;
+};
 
-void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
-                  Enemy &enemy, const float delta, Vector2 spawnPoint) {
+void updatePlayer(Player &player, Rectangle *platformsLevel1,
+                  int platformsLevel1Length, Enemy &enemy, const float delta,
+                  Vector2 spawnPoint) {
   player.toggleCooldown += delta; // could this overflow?
   if (IsKeyDown(KEY_A))
     player.position.x -= MOVEMENT * delta;
@@ -50,8 +53,8 @@ void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
   }
 
   // Check horizontal collisions (player sides vs platform sides)
-  for (int i = 0; i < platformsLength; i++) {
-    Rectangle plat = platforms[i];
+  for (int i = 0; i < platformsLevel1Length; i++) {
+    Rectangle plat = platformsLevel1[i];
     float playerLeft = player.position.x - player.size.x / 2;
     float playerRight = player.position.x + player.size.x / 2;
     float playerTop = player.position.y - player.size.y;
@@ -75,28 +78,22 @@ void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
   }
 
   // Collision with enemy
-  Rectangle playerRect = {
-      player.position.x - player.size.x / 2,
-      player.position.y - player.size.y,
-      player.size.x,
-      player.size.y};
+  Rectangle playerRect = {player.position.x - player.size.x / 2,
+                          player.position.y - player.size.y, player.size.x,
+                          player.size.y};
 
-  Rectangle enemyRect = {
-      enemy.position.x - enemy.size.x / 2,
-      enemy.position.y - enemy.size.y,
-      enemy.size.x,
-      enemy.size.y
-    };
+  Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
+                         enemy.position.y - enemy.size.y, enemy.size.x,
+                         enemy.size.y};
 
   if (CheckCollisionRecs(playerRect, enemyRect)) {
     player.healthPoints = player.healthPoints - 5;
     if (player.healthPoints <= 0) {
       // Handle player death (e.g., reset position, reduce lives, etc.)
       player.position = spawnPoint; // Reset position for demonstration
-      player.healthPoints = 5; // Reset health points
+      player.healthPoints = 5;      // Reset health points
     }
   }
-
 
   if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
     player.toggle = !player.toggle;
@@ -109,8 +106,8 @@ void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
 
   // --- Vertical collision ---
   bool hitObstacle = false;
-  for (int i = 0; i < platformsLength; i++) {
-    Rectangle plat = platforms[i];
+  for (int i = 0; i < platformsLevel1Length; i++) {
+    Rectangle plat = platformsLevel1[i];
     float playerLeft = player.position.x - player.size.x / 2;
     float playerRight = player.position.x + player.size.x / 2;
     if (playerRight >= plat.x && playerLeft <= (plat.x + plat.width)) {
@@ -153,46 +150,80 @@ void updatePlayer(Player &player, Rectangle *platforms, int platformsLength,
 }
 
 int main() {
-  // Tell the window to use vsync and work on high DPI displays
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-  // Create the window and OpenGL context
   const int screenWidth = 1280;
   const int screenHeight = 800;
   InitWindow(screenWidth, screenHeight, "LVLUP Game Jam 2026");
   SetExitKey(KEY_NULL);
 
-  // Utility function from resource_dir.h to find the resources folder and set
-  // it as the current working directory so we can load from it
   SearchAndSetResourceDir("resources");
-  Vector2 spawnPoint = {50, screenHeight - 50};
+
+  // LEVEL SETUP
+  std::vector<Level> levels;
+
+  // LEVEL 1: Easy
+  Level lvl1;
+  lvl1.spawnPoint = {50, (float)(screenHeight - 100)};
+  lvl1.platforms = {{400, 600, 100, 10},
+                    {600, 500, 100, 10},
+                    {0, (float)(screenHeight - 50), (float)screenWidth, 50}};
+  lvl1.enemy = {lvl1.platforms[0].x + lvl1.platforms[0].width / 2,
+                lvl1.platforms[0].y,
+                {30, 30},
+                false,
+                0};
+  levels.push_back(lvl1);
+
+  // LEVEL 2
+  Level lvl2;
+  lvl2.spawnPoint = {50, 200};
+  lvl2.platforms = {{50, 250, 100, 10},
+                    {300, 550, 100, 10},
+                    {500, 450, 100, 10},
+                    {700, 350, 100, 10},
+                    {0, (float)(screenHeight - 50), (float)screenWidth, 50}};
+  lvl2.enemy = {
+      {lvl2.platforms[1].x + lvl2.platforms[1].width / 2, lvl2.platforms[1].y},
+      {30, 30},
+      false,
+      1};
+  levels.push_back(lvl2);
+
+  // LEVEL 3
+  Level lvl3;
+  lvl3.spawnPoint = {100, 600};
+  lvl3.platforms = {{100, 650, 150, 10},
+                    {400, 600, 100, 10},
+                    {600, 500, 100, 10},
+                    {800, 400, 100, 10},
+                    {1000, 300, 100, 10},
+                    {0, (float)(screenHeight + 200), (float)screenWidth, 50}};
+  lvl3.enemy = {
+      {lvl3.platforms[2].x + lvl3.platforms[2].width / 2, lvl3.platforms[2].y},
+      {30, 30},
+      false,
+      2};
+  levels.push_back(lvl3);
+  // -------------------
+
   Player player = {0};
-  player.position = spawnPoint;
   player.size = {40, 80};
   player.toggleCooldown = 2.0f;
   player.healthPoints = 5;
+  player.position = levels[0].spawnPoint;
 
-  Rectangle platforms[] = {
-      {400, 600, 100, 10},
-      {600, 500, 100, 10},
-      {0, screenHeight - 50, screenWidth, 50},
-  };
-
-  int platformsLength = sizeof(platforms) / sizeof(platforms[0]);
-
-  Enemy enemy = {{platforms[0].x, platforms[0].y}, {30, 30}};
   GameScreen currentScreen = GAMEPLAY;
 
   // --- SETUP STAR DONUT ---
   StarDonutState donutState;
   InitStarDonut(&donutState, screenWidth, screenHeight);
 
-  int currentLevel = 0;  // Track current level (used on GAMEPLAY screen)
-  bool exitGame = false; // Track when the user wants to exit the game
+  int currentLevel = 1; // Start at Level 1 (human-readable, 1-based)
+  bool exitGame = false;
 
   int titleMenuOption = 0;
   int pauseMenuOption = 0;
-
-  int framesCounter = 0; // Useful to count frames
+  int framesCounter = 0;
 
   while (!WindowShouldClose() &&
          !exitGame) { // run the loop until the user presses ESCAPE or presses
@@ -226,7 +257,9 @@ int main() {
 
       if (IsKeyPressed(KEY_ENTER)) {
         if (titleMenuOption == 0) { // PLAY
-          currentLevel = 1;         // Reset level
+          currentLevel = 1;
+          player.position = levels[0].spawnPoint;
+          player.healthPoints = 5;
           currentScreen = GAMEPLAY;
         } else if (titleMenuOption == 1) { // QUIT
           exitGame = true;
@@ -234,17 +267,19 @@ int main() {
       }
     } break;
     case GAMEPLAY: {
-      // TODO: Update GAMEPLAY screen variables here!
       if (IsKeyPressed(KEY_ESCAPE)) {
         currentScreen = PAUSE;
-        pauseMenuOption = 0; // Reset pause menu option
+        pauseMenuOption = 0;
       }
-      // Press enter to change to ENDING screen
-      if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
-        currentLevel++; // Increment level (just for demonstration, not used in
-                        // this example)
-        if (currentLevel > 3) {
+
+      // LOGIC FOR LEVEL TRANSITION
+      if (IsKeyPressed(KEY_ENTER)) {
+        currentLevel++;
+        if (currentLevel > (int)levels.size()) {
           currentScreen = ENDING;
+        } else {
+          player.position = levels[currentLevel - 1].spawnPoint;
+          player.speed = 0;
         }
       }
     } break;
@@ -330,29 +365,37 @@ int main() {
     } break;
     case GAMEPLAY: {
       DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
-      DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40,
-               MAROON);
-      DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE",
-               screenWidth / 2 -
-                   MeasureText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 20) /
-                       2,
-               screenHeight - 100, 20, MAROON);
-      // draw some text using the default font
+      DrawText(TextFormat("LEVEL %d", currentLevel), 20, 20, 40, MAROON);
+
+      // GET DATA FOR CURRENT LEVEL
+      int levelIndex = currentLevel - 1;
+      if (levelIndex >= (int)levels.size())
+        levelIndex = 0;
+      Level &currentLvlData = levels[levelIndex];
+
+      // Debug text
       std::string debugText =
           "Debug coordinates: " + std::to_string(player.position.x) + ", " +
           std::to_string(player.position.y) +
           "\nToggle: " + std::to_string(player.toggle) +
           ", Time: " + std::to_string(player.toggleCooldown);
-
       DrawText(debugText.c_str(), 10, 10, 20, WHITE);
 
-      updatePlayer(player, platforms, platformsLength, enemy, delta, spawnPoint);
-      for (int i = 0; i < platformsLength; i++) {
-        Rectangle rec = platforms[i];
-        DrawRectangleRec(rec, GRAY);
+      // UPDATE PLAYER using current level data
+      updatePlayer(player, currentLvlData.platforms.data(),
+                   (int)currentLvlData.platforms.size(), currentLvlData.enemy,
+                   delta, currentLvlData.spawnPoint);
+
+      // DRAW PLATFORMS
+      for (int i = 0; i < (int)currentLvlData.platforms.size(); i++) {
+        DrawRectangleRec(currentLvlData.platforms[i], GRAY);
       }
 
-      updateEnemy(enemy, platforms[0], delta);
+      // UPDATE/DRAW ENEMY
+      if (!currentLvlData.platforms.empty()) {
+        int pi = currentLvlData.enemy.patrolPlatformIndex;
+        updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi], delta);
+      }
 
     } break;
     case PAUSE: {
