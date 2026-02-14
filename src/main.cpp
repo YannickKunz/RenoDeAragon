@@ -2,6 +2,8 @@
 #include <iostream>
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 #include "star_donut.h"	// our star donut demo code
+#include "enemy.cpp"
+
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
 #define JUMP_SPEED 600.0f
@@ -23,8 +25,7 @@ bool exitGame = false;              // Track when the user wants to exit the gam
 int titleMenuOption = 0;
 int pauseMenuOption = 0;
 
-void updatePlayer(Player& player, Rectangle (&platforms)[], int platformsLength) {
-	float delta = GetFrameTime();
+void updatePlayer(Player& player, Rectangle (&platforms)[], int platformsLength, const float delta) {
 	player.toggleCooldown += delta; // could this overflow?
 	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
 	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
@@ -183,7 +184,8 @@ int main () {
 
 	int platformsLength = sizeof(platforms)/sizeof(platforms[0]);
 
-	GameScreen currentScreen = LOGO;
+	Enemy enemy = { {platforms[0].x, platforms[0].y}, {30, 30} };
+	GameScreen currentScreen = GAMEPLAY;
 
 	// --- SETUP STAR DONUT ---
 	StarDonutState donutState;
@@ -195,6 +197,7 @@ int main () {
 													// Drawing
 													//----------------------------------------------------------------------------------
 		currentScreen = selectScreen(currentScreen);
+		float delta = GetFrameTime();
 
 		BeginDrawing();
 		// Setup the back buffer for drawing (clear color and depth buffers)
@@ -235,11 +238,13 @@ int main () {
 
 					DrawText(debugText.c_str(), 10, 10, 20, WHITE);
 
-					updatePlayer(player, platforms, platformsLength);
+					updatePlayer(player, platforms, platformsLength, delta);
 					for (int i = 0; i < platformsLength; i++) {
 						Rectangle rec = platforms[i];
 						DrawRectangleRec(rec, GRAY);
 					}
+
+					updateEnemy(enemy, platforms[0], delta);
 
 				} break;
 			case PAUSE:
