@@ -10,6 +10,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "raylib.h"
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+#include "star_donut.h"	// our star donut demo code
 
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
 
@@ -29,6 +30,11 @@ int main ()
 	// Load a texture from the resources directory
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
 
+	// --- SETUP STAR DONUT ---
+    StarDonutState donutState; 
+    InitStarDonut(&donutState, screenWidth, screenHeight);
+    // ------------------------
+
 	GameScreen currentScreen = LOGO;
 	int framesCounter = 0;          // Useful to count frames
     SetTargetFPS(60); 
@@ -47,7 +53,7 @@ int main ()
                 framesCounter++;    // Count frames
 
                 // Wait for 2 seconds (120 frames) before jumping to TITLE screen
-                if (framesCounter > 120)
+                if (framesCounter > 300)
                 {
                     currentScreen = TITLE;
                 }
@@ -95,6 +101,9 @@ int main ()
             {
                 case LOGO:
                 {
+					// --- DRAW DONUT ---
+                    DrawStarDonut(&donutState, screenWidth, screenHeight);
+                    // ------------------
                     // TODO: Draw LOGO screen here!
                     DrawText("LOGO SCREEN", 20, 20, 40, LIGHTGRAY);
                     DrawText("WAIT for 2 SECONDS...", 290, 220, 20, GRAY);
