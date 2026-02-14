@@ -288,13 +288,16 @@ void DrawLighting(GameState& game, Level& level) {
 }
 
 void DrawGameplay(GameState& game) {
-
     Level& currentLvlData = game.levels[game.currentLevelIndex];
 
     // Background
-    Texture2D bg = std::get<0>(currentLvlData.backgrounds);
-    if (bg.id != 0) DrawTexture(bg, 0, 0, WHITE);
-    else DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, PURPLE);
+    Texture2D bg = playerToggle ? std::get<0>(currentLvlData.backgrounds) : std::get<1>(currentLvlData.backgrounds);
+	// TODO: possible to fade in?
+    if (bg.id != 0) {
+		DrawTexture(bg, 0, 0, WHITE);
+	} else {
+		DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, PURPLE);
+	}
 
     // Platforms
     for (const auto& plat : currentLvlData.platforms) {
