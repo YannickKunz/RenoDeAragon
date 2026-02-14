@@ -18,11 +18,6 @@ typedef enum GameScreen {
 	CREDIT
 } GameScreen;
 
-int currentLevel = 0;
-bool exitGame = false; // Track when the user wants to exit the game
-int titleMenuOption = 0;
-int pauseMenuOption = 0;
-
 // --- CLOUD STRUCT ---
 typedef struct Cloud {
 	Rectangle rect;
@@ -230,8 +225,7 @@ int main() {
 	player.healthPoints = 5;
 	player.position = levels[0].spawnPoint;
 
-	// FIXED: Removed duplicate 'currentScreen' definition
-	GameScreen currentScreen = LOGO;
+	GameScreen currentScreen = GAMEPLAY;
 
 	// --- INIT CLOUDS ---
 	Cloud clouds[] = {
@@ -250,6 +244,8 @@ int main() {
 	StarDonutState donutState;
 	InitStarDonut(&donutState, screenWidth, screenHeight);
 
+	RenderTexture2D lightLayer = LoadRenderTexture(screenWidth, screenHeight);
+
 	int currentLevel = 1; // Start at Level 1 (human-readable, 1-based)
 	bool exitGame = false;
 
@@ -257,11 +253,7 @@ int main() {
 	int pauseMenuOption = 0;
 	int framesCounter = 0;
 
-	while (!WindowShouldClose() &&
-			!exitGame) { // run the loop until the user presses ESCAPE or presses
-						 // the Close button on the window
-						 // Update
-						 //
+	while (!WindowShouldClose() && !exitGame) {
 		float delta = GetFrameTime();
 		switch (currentScreen) {
 			case LOGO: {
@@ -359,11 +351,8 @@ int main() {
 			default:
 						 break;
 		}
-		//----------------------------------------------------------------------------------
-		// Drawing
-		//----------------------------------------------------------------------------------
-		BeginDrawing();
 
+		BeginDrawing();
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
 		switch (currentScreen) {
@@ -395,7 +384,6 @@ int main() {
 										screenHeight / 2 + 50, 30, YELLOW);
 
 						} break;
-						// FIXED: Merged duplicate GAMEPLAY case here
 			case GAMEPLAY: {
 							   DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
 							   DrawText(TextFormat("LEVEL %d", currentLevel), 20, 20, 40, MAROON);
@@ -419,73 +407,9 @@ int main() {
 									   (int)currentLvlData.platforms.size(), currentLvlData.enemy,
 									   delta, currentLvlData.spawnPoint);
 
-							   // DRAW PLATFORMS
-							   for (int i = 0; i < (int)currentLvlData.platforms.size(); i++) {
-								   DrawRectangleRec(currentLvlData.platforms[i].position, GRAY);
-							   }
-
-							   // UPDATE/DRAW ENEMY
-							   if (!currentLvlData.platforms.empty()) {
-								   int pi = currentLvlData.enemy.patrolPlatformIndex;
-								   updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, delta);
-							   }
-
-							   // --- 1. UPDATE & DRAW CLOUDS ---
-							   for (int i = 0; i < cloudsLength; i++) {
-								   // Move Cloud
-								   if (clouds[i].movingRight) {
-									   clouds[i].rect.x += clouds[i].speed * GetFrameTime();
-									   if (clouds[i].rect.x > clouds[i].rightLimit)
-										   clouds[i].movingRight = false;
-								   } else {
-									   clouds[i].rect.x -= clouds[i].speed * GetFrameTime();
-									   if (clouds[i].rect.x < clouds[i].leftLimit)
-										   clouds[i].movingRight = true;
-								   }
-
-								   // Draw Cloud
-								   DrawRectangleRec(clouds[i].rect, Fade(SKYBLUE, 0.9f));
-								   DrawRectangleLinesEx(clouds[i].rect, 2, WHITE);
-							   }
-							   // -------------------------------
-
-							   // Removed duplicate call to updatePlayer
-
-							   // 2. CLOUD RIDING LOGIC
-							   // We check if player is falling (speed > 0) or standing, and if they hit
-							   // a cloud
-							   if (player.speed >= 0) {
-								   for (int i = 0; i < cloudsLength; i++) {
-									   Rectangle plat = clouds[i].rect;
-									   // Check if player is within horizontal bounds of cloud
-									   if (plat.x <= player.position.x &&
-											   (plat.x + plat.width) >= player.position.x) {
-										   // Check vertical collision (landing on top)
-										   // We use a small threshold because updatePlayer might have just
-										   // moved us
-										   if (player.position.y >= plat.y &&
-												   player.position.y <= (plat.y + 10.0f)) {
-
-											   player.speed = 0.0f;
-											   player.position.y = plat.y;
-											   player.canJump = true;
-
-											   // Move Player with Cloud
-											   float moveAmount = clouds[i].speed * GetFrameTime();
-											   if (clouds[i].movingRight)
-												   player.position.x += moveAmount;
-											   else
-												   player.position.x -= moveAmount;
-
-											   break;
-										   }
-									   }
-								   }
-							   }
-
 							   // --- 4. SUNLIGHT RAYCASTING ---
 							   Vector2 sunPos = {500.0f, -50.0f};
-							   DrawCircleV(sunPos, 40, YELLOW); // Draw Sun
+							   //DrawCircleV(sunPos, 40, YELLOW); // Draw Sun
 
 							   // Prepare 3D boxes
 							   BoundingBox playerBox3D = {
@@ -495,6 +419,10 @@ int main() {
 									   10}};
 
 							   bool anyRayHitPlayer = false;
+
+							   // BEGIN DRAWING TO LIGHT TEXTURE
+							   BeginTextureMode(lightLayer);
+							   ClearBackground(BLANK); // Clear with transparency
 
 							   // Cast rays
 							   for (int x = -200; x <= screenWidth + 200; x += 40) {
@@ -510,7 +438,7 @@ int main() {
 
 								   float nearestDist = 2000.0f;
 								   bool hitPlayer = false;
-								   Color rayColor = Fade(YELLOW, 0.15f);
+								   Color rayColor = YELLOW; 
 
 								   // A. Check Player
 								   RayCollision playerHit = GetRayCollisionBox(currentRay, playerBox3D);
@@ -555,19 +483,93 @@ int main() {
 									   }
 								   }
 
-								   // Draw Ray
+								   // Draw SOLID Ray onto the texture
 								   Vector2 endPos = {sunPos.x + rayDir.x * nearestDist,
 									   sunPos.y + rayDir.y * nearestDist};
 
 								   if (hitPlayer) {
-									   rayColor = Fade(RED, 0.6f);
+									   rayColor = RED; // Solid Red
 									   anyRayHitPlayer = true;
 								   }
 
-								   DrawLineEx(sunPos, endPos, 30.0f, rayColor);
-								   if (hitPlayer)
-									   DrawCircleV(endPos, 3, RED);
+								   DrawLineEx(sunPos, endPos, 40.0f, rayColor);
+								   if (hitPlayer) DrawCircleV(endPos, 5, RED);
 							   }
+							   EndTextureMode(); // STOP DRAWING TO TEXTURE
+
+							   // NOW DRAW THE WHOLE LIGHT LAYER WITH TRANSPARENCY
+							   // Use BLEND_ADDITIVE for a "glowing" look, or BLEND_ALPHA for standard transparency
+							   // BeginBlendMode(BLEND_ADDITIVE); 
+							   DrawTextureRec(lightLayer.texture, 
+									   (Rectangle){0, 0, (float)screenWidth, (float)-screenHeight}, 
+									   (Vector2){0, 0}, 
+									   Fade(WHITE, 0.2f)); // Apply opacity here!
+														   // EndBlendMode();
+
+														   // DRAW PLATFORMS
+							   for (int i = 0; i < (int)currentLvlData.platforms.size(); i++) {
+								   DrawRectangleRec(currentLvlData.platforms[i].position, GRAY);
+							   }
+
+
+							   // --- 1. UPDATE & DRAW CLOUDS ---
+							   for (int i = 0; i < cloudsLength; i++) {
+								   // Move Cloud
+								   if (clouds[i].movingRight) {
+									   clouds[i].rect.x += clouds[i].speed * GetFrameTime();
+									   if (clouds[i].rect.x > clouds[i].rightLimit)
+										   clouds[i].movingRight = false;
+								   } else {
+									   clouds[i].rect.x -= clouds[i].speed * GetFrameTime();
+									   if (clouds[i].rect.x < clouds[i].leftLimit)
+										   clouds[i].movingRight = true;
+								   }
+
+								   // Draw Cloud
+								   DrawRectangleRec(clouds[i].rect, Fade(SKYBLUE, 0.9f));
+								   DrawRectangleLinesEx(clouds[i].rect, 2, WHITE);
+							   }
+							   // -------------------------------
+
+							   // 2. CLOUD RIDING LOGIC
+							   // We check if player is falling (speed > 0) or standing, and if they hit
+							   // a cloud
+							   if (player.speed >= 0) {
+								   for (int i = 0; i < cloudsLength; i++) {
+									   Rectangle plat = clouds[i].rect;
+									   // Check if player is within horizontal bounds of cloud
+									   if (plat.x <= player.position.x &&
+											   (plat.x + plat.width) >= player.position.x) {
+										   // Check vertical collision (landing on top)
+										   // We use a small threshold because updatePlayer might have just
+										   // moved us
+										   if (player.position.y >= plat.y &&
+												   player.position.y <= (plat.y + 10.0f)) {
+
+											   player.speed = 0.0f;
+											   player.position.y = plat.y;
+											   player.canJump = true;
+
+											   // Move Player with Cloud
+											   float moveAmount = clouds[i].speed * GetFrameTime();
+											   if (clouds[i].movingRight)
+												   player.position.x += moveAmount;
+											   else
+												   player.position.x -= moveAmount;
+
+											   break;
+										   }
+									   }
+								   }
+							   }
+
+							   // UPDATE/DRAW ENEMY
+							   if (!currentLvlData.platforms.empty()) {
+								   int pi = currentLvlData.enemy.patrolPlatformIndex;
+								   updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, delta);
+							   }
+
+							   DrawCircleV(sunPos, 40, YELLOW); // Draw Sun body on top
 
 							   // --- 5. PARTICLES & LOGIC ---
 							   isPlayerBurning = anyRayHitPlayer;
@@ -648,11 +650,11 @@ int main() {
 						 break;
 		}
 
-		// end the frame and get ready for the next one  (display frame, poll input,
-		// etc...)
+		// end the frame and get ready for the next one
 		EndDrawing();
 	}
-	// destroy the window and cleanup the OpenGL context
+
+	UnloadRenderTexture(lightLayer);
 	CloseWindow();
 	return 0;
 }
