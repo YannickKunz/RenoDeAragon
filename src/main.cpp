@@ -12,18 +12,18 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 #include "star_donut.h"	// our star donut demo code
 
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
+typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, PAUSE, ENDING } GameScreen;
 
 int main ()
 {
 	const int screenWidth = 1280;
     const int screenHeight = 800;
+
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-
 	// Create the window and OpenGL context
 	InitWindow(screenWidth, screenHeight, "Hello Raylib");
-
+    SetExitKey(KEY_NULL);
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
@@ -36,11 +36,17 @@ int main ()
     // ------------------------
 
 	GameScreen currentScreen = LOGO;
+    int currentLevel = 0;              // Track current level (used on GAMEPLAY screen) 
+    bool exitGame = false;              // Track when the user wants to exit the game
+
+    int titleMenuOption = 0;
+    int pauseMenuOption = 0;
+
 	int framesCounter = 0;          // Useful to count frames
     SetTargetFPS(60); 
 	
 	// game loop
-	while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
+	while (!WindowShouldClose() && !exitGame)		// run the loop until the user presses ESCAPE or presses the Close button on the window
 	{
 		// Update
         //----------------------------------------------------------------------------------
@@ -60,23 +66,73 @@ int main ()
             } break;
             case TITLE:
             {
-                // TODO: Update TITLE screen variables here!
+                // Simple Menu Navigation
+                if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) titleMenuOption++;
+                if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) titleMenuOption--;
+                
+                // Clamp options (0 to 1)
+                if (titleMenuOption < 0) titleMenuOption = 1;
+                if (titleMenuOption > 1) titleMenuOption = 0;
 
-                // Press enter to change to GAMEPLAY screen
-                if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+                if (IsKeyPressed(KEY_ENTER))
                 {
-                    currentScreen = GAMEPLAY;
+                    if (titleMenuOption == 0) // PLAY
+                    {
+                        currentLevel = 1; // Reset level
+                        currentScreen = GAMEPLAY;
+                    }
+                    else if (titleMenuOption == 1) // QUIT
+                    {
+                        exitGame = true;
+                    }
                 }
             } break;
             case GAMEPLAY:
             {
                 // TODO: Update GAMEPLAY screen variables here!
-
+                if (IsKeyPressed(KEY_ESCAPE))
+                {
+                    currentScreen = PAUSE;
+                    pauseMenuOption = 0; // Reset pause menu option
+                }
                 // Press enter to change to ENDING screen
                 if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
                 {
-                    currentScreen = ENDING;
+                    currentLevel++; // Increment level (just for demonstration, not used in this example)
+                    if (currentLevel > 3) 
+                    {
+                        currentScreen = ENDING;
+                    }
                 }
+                
+            } break;
+            case PAUSE:
+            {
+                // Simple Pause Menu Navigation
+                if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) pauseMenuOption++;
+                if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) pauseMenuOption--;
+
+                // Clamp options (0 to 1)
+                if (pauseMenuOption < 0) pauseMenuOption = 1;
+                if (pauseMenuOption > 1) pauseMenuOption = 0;
+
+                if (IsKeyPressed(KEY_ENTER))
+                {
+                    if (pauseMenuOption == 0) // RESUME
+                    {
+                        currentScreen = GAMEPLAY;
+                    }
+                    else if (pauseMenuOption == 1) // QUIT TO TITLE
+                    {
+                        currentScreen = TITLE;
+                        titleMenuOption = 0;
+                    }
+                }
+                if (IsKeyPressed(KEY_ESCAPE)) // Toggle back to game
+                {
+                     currentScreen = GAMEPLAY;
+                }
+
             } break;
             case ENDING:
             {
@@ -111,23 +167,50 @@ int main ()
                 } break;
                 case TITLE:
                 {
-                    // TODO: Draw TITLE screen here!
                     DrawRectangle(0, 0, screenWidth, screenHeight, DARKGREEN);
-                    //DrawText("TITLE SCREEN", 20, 20, 40, DARKGREEN);
-                    DrawText("PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN", 120, 220, 20, DARKGREEN);
-					// draw some text using the default font
-					DrawText("Hello Raylib", 200,200,20,WHITE);
+                    DrawText("TITLE SCREEN", 20, 20, 40, LIGHTGRAY);
+                    
+                    // Draw Menu
+                    Color playColor = (titleMenuOption == 0) ? YELLOW : WHITE;
+                    Color quitColor = (titleMenuOption == 1) ? YELLOW : WHITE;
 
-					// draw our texture to the screen
-					DrawTexture(wabbit, 400, 200, WHITE);
+                    DrawText("PLAY GAME", screenWidth/2 - MeasureText("PLAY GAME", 30)/2, screenHeight/2, 30, playColor);
+                    DrawText("QUIT", screenWidth/2 - MeasureText("QUIT", 30)/2, screenHeight/2 + 50, 30, quitColor);
+
+                    if (titleMenuOption == 0) DrawText(">", screenWidth/2 - MeasureText("PLAY GAME", 30)/2 - 30, screenHeight/2, 30, YELLOW);
+                    if (titleMenuOption == 1) DrawText(">", screenWidth/2 - MeasureText("QUIT", 30)/2 - 30, screenHeight/2 + 50, 30, YELLOW);
+
+                    // draw some text using the default font
+                    DrawText("Hello Raylib", 200,200,20,WHITE);
+
+                    // draw our texture to the screen
+                    DrawTexture(wabbit, 400, 200, WHITE);
 
                 } break;
                 case GAMEPLAY:
                 {
-                    // TODO: Draw GAMEPLAY screen here!
                     DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
-                    DrawText("GAMEPLAY SCREEN", 20, 20, 40, MAROON);
-                    DrawText("PRESS ENTER or TAP to JUMP to ENDING SCREEN", 130, 220, 20, MAROON);
+                    DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40, MAROON);
+                    DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 130, 220, 20, MAROON);
+
+                } break;
+                case PAUSE:
+                {
+                    // Draw gameplay background dimmed (optional logic, hard to do with switch unless we draw gameplay first)
+                    // For simplicity, just a grey background
+                    DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
+                    
+                    DrawText("PAUSED", screenWidth/2 - MeasureText("PAUSED", 40)/2, screenHeight/4, 40, WHITE);
+
+                    // Draw Menu
+                    Color resumeColor = (pauseMenuOption == 0) ? YELLOW : WHITE;
+                    Color quitColor = (pauseMenuOption == 1) ? YELLOW : WHITE;
+
+                    DrawText("RESUME", screenWidth/2 - MeasureText("RESUME", 30)/2, screenHeight/2, 30, resumeColor);
+                    DrawText("QUIT TO TITLE", screenWidth/2 - MeasureText("QUIT TO TITLE", 30)/2, screenHeight/2 + 50, 30, quitColor);
+
+                    if (pauseMenuOption == 0) DrawText(">", screenWidth/2 - MeasureText("RESUME", 30)/2 - 30, screenHeight/2, 30, YELLOW);
+                    if (pauseMenuOption == 1) DrawText(">", screenWidth/2 - MeasureText("QUIT TO TITLE", 30)/2 - 30, screenHeight/2 + 50, 30, YELLOW);
 
                 } break;
                 case ENDING:
