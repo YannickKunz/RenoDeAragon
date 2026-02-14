@@ -164,10 +164,10 @@ void UpdateGameplay(GameState& game, float delta) {
     updatePlayer(game.player, currentLvlData.platforms.data(), (int)currentLvlData.platforms.size(), currentLvlData.enemy, delta, currentLvlData.spawnPoint);
 
     // 2. Update Enemy
-    if (!currentLvlData.platforms.empty()) {
-        int pi = currentLvlData.enemy.patrolPlatformIndex;
-        updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, delta);
-    }
+    //if (!currentLvlData.platforms.empty()) {
+    //    int pi = currentLvlData.enemy.patrolPlatformIndex;
+    //    updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, delta);
+    //}
     
     // 3. Update Clouds & Player Cloud Riding
     for (auto& cloud : currentLvlData.clouds) {
@@ -314,7 +314,13 @@ void DrawGameplay(GameState& game) {
     DrawCircleV(currentLvlData.sunPosition, 40, YELLOW);
     // Note: Enemy drawing is likely inside the enemy struct logic or missing from original code explicitly, adding basic rect:
     // Assuming enemy was drawn previously or not crucial for refactor demo, skipping explicit draw call if not found in original snippet logic.
-
+    // Draw Enemy
+    if (!currentLvlData.platforms.empty()) {
+        int pi = currentLvlData.enemy.patrolPlatformIndex;
+        // We need 'delta' here. Since DrawGameplay doesn't typically take delta, 
+        // strictly speaking we should pass it, or just use GetFrameTime() directly here.
+        updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, GetFrameTime());
+    }
     // Particles
     UpdateParticles(&game.particleSystem);
     if (game.isPlayerBurning) {
