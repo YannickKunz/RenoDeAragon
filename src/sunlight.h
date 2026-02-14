@@ -1,20 +1,22 @@
-#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
-#include "star_donut.h"	// our star donut demo code
+#ifndef SUNLIGHT_H
+#define SUNLIGHT_H
 
+#include "raylib.h"
 bool IsInSunlight(BoundingBox player, BoundingBox obstacle, Ray sunRay)
 {
     RayCollision playerHit = GetRayCollisionBox(sunRay, player);
     RayCollision obstacleHit = GetRayCollisionBox(sunRay, obstacle);
 
-    if (playerHit.hit)
-    {
-        if (obstacleHit.hit)
-        {
-            // If the obstacle is hit before the player, then the player is in shadow
-            return playerHit.distance < obstacleHit.distance;
-        }
-        // If the player is hit and the obstacle is not, then the player is in sunlight
-        return true;
-    }
+    // If the ray didn't even hit the player's column, we are safe (or missed)
+    if (!playerHit.hit) return false;
 
+    // If we hit player, but MISSED the obstacle completely, we are definitely burning
+    if (!obstacleHit.hit) return true;
+
+    // If we hit BOTH, we check who is closer to the sun source.
+    // If player distance < obstacle distance, player is closer to sun -> Burning.
+    // If obstacle distance < player distance, obstacle is closer -> Shadow/Safe.
+    return (playerHit.distance < obstacleHit.distance);
 }
+
+#endif
