@@ -1,6 +1,6 @@
 #pragma once
 #include "raylib.h"
-#include "player.h"
+#include "player.cpp"
 
 #define MUSHROOM_WIDTH  25
 #define MUSHROOM_HEIGHT 50

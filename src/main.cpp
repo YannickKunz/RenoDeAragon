@@ -1,12 +1,12 @@
-#include "particles.h"
 #include "raylib.h"
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
 #include "star_donut.h"   // our star donut demo code
-#include "sunlight.h"
+#include "sunlight.cpp"
 #include <iostream>
-#include "player.h"
-#include "platform.h"
-#include "enemy.h"
+#include "particles.cpp"
+#include "player.cpp"
+#include "platform.cpp"
+#include "enemy.cpp"
 #include <vector>
 
 typedef enum GameScreen {
