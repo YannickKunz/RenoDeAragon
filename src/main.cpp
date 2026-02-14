@@ -8,11 +8,10 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 */
 
 #include "raylib.h"
-
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 #include "star_donut.h"	// our star donut demo code
 
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, PAUSE, ENDING } GameScreen;
+typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, PAUSE, ENDING, CREDIT } GameScreen;
 
 int main ()
 {
@@ -59,7 +58,7 @@ int main ()
                 framesCounter++;    // Count frames
 
                 // Wait for 2 seconds (120 frames) before jumping to TITLE screen
-                if (framesCounter > 300)
+                if (framesCounter > 120)
                 {
                     currentScreen = TITLE;
                 }
@@ -141,8 +140,16 @@ int main ()
                 // Press enter to return to TITLE screen
                 if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
                 {
-                    currentScreen = TITLE;
+                    currentScreen = CREDIT;
                 }
+            } break;
+            case CREDIT:
+            {
+                DrawText("CREDITS SCREEN", 20, 20, 40, LIGHTGRAY);
+                if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+                    {
+                        currentScreen = TITLE;
+                    }
             } break;
             default: break;
         }
@@ -161,14 +168,14 @@ int main ()
                     DrawStarDonut(&donutState, screenWidth, screenHeight);
                     // ------------------
                     // TODO: Draw LOGO screen here!
-                    DrawText("LOGO SCREEN", 20, 20, 40, LIGHTGRAY);
-                    DrawText("WAIT for 2 SECONDS...", 290, 220, 20, GRAY);
+                    //DrawText("LOGO SCREEN", 20, 20, 40, LIGHTGRAY);
+                    //DrawText("WAIT for 2 SECONDS...", 290, 220, 20, GRAY);
 
                 } break;
                 case TITLE:
                 {
                     DrawRectangle(0, 0, screenWidth, screenHeight, DARKGREEN);
-                    DrawText("TITLE SCREEN", 20, 20, 40, LIGHTGRAY);
+                    DrawText("TITLE SCREEN", screenWidth/2 - MeasureText("TITLE SCREEN", 30)/2, screenHeight/3, 30, YELLOW);
                     
                     // Draw Menu
                     Color playColor = (titleMenuOption == 0) ? YELLOW : WHITE;
@@ -181,17 +188,17 @@ int main ()
                     if (titleMenuOption == 1) DrawText(">", screenWidth/2 - MeasureText("QUIT", 30)/2 - 30, screenHeight/2 + 50, 30, YELLOW);
 
                     // draw some text using the default font
-                    DrawText("Hello Raylib", 200,200,20,WHITE);
+                    //DrawText("Hello Raylib", 200,200,20,WHITE);
 
                     // draw our texture to the screen
-                    DrawTexture(wabbit, 400, 200, WHITE);
+                    //DrawTexture(wabbit, 400, 200, WHITE);
 
                 } break;
                 case GAMEPLAY:
                 {
                     DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
                     DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40, MAROON);
-                    DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 130, 220, 20, MAROON);
+                    DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", screenWidth/2 - MeasureText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 20)/2, screenHeight - 100, 20, MAROON);
 
                 } break;
                 case PAUSE:
@@ -217,8 +224,16 @@ int main ()
                 {
                     // TODO: Draw ENDING screen here!
                     DrawRectangle(0, 0, screenWidth, screenHeight, BLUE);
-                    DrawText("ENDING SCREEN", 20, 20, 40, DARKBLUE);
-                    DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 120, 220, 20, DARKBLUE);
+                    DrawText("ENDING SCREEN", screenWidth/2 - MeasureText("ENDING SCREEN", 40)/2, screenHeight/4, 40, LIGHTGRAY);
+                    DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", screenWidth/2 - MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20)/2, screenHeight - 100, 20, LIGHTGRAY);
+
+                } break;
+                case CREDIT:
+                {
+                    DrawRectangle(0, 0, screenWidth, screenHeight, DARKGRAY);
+                    DrawText("CREDITS", screenWidth/2 - MeasureText("CREDITS", 40)/2, screenHeight/4, 40, LIGHTGRAY);
+                    DrawText("This game was developed by Reino de Aragon", screenWidth/2 - MeasureText("This game was developed by Reino de Aragon", 20)/2, screenHeight/2, 20, LIGHTGRAY);
+                    DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", screenWidth/2 - MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20)/2, screenHeight - 100, 20, LIGHTGRAY);
 
                 } break;
                 default: break;
