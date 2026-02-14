@@ -12,6 +12,7 @@
 typedef enum GameScreen {
 	LOGO = 0,
 	TITLE,
+    STORY,
 	GAMEPLAY,
 	PAUSE,
 	ENDING,
@@ -280,16 +281,26 @@ int main() {
 								titleMenuOption = 0;
 
 							if (IsKeyPressed(KEY_ENTER)) {
-								if (titleMenuOption == 0) { // PLAY
-									currentLevel = 1;
-									player.position = levels[0].spawnPoint;
-									player.healthPoints = 5;
-									currentScreen = GAMEPLAY;
-								} else if (titleMenuOption == 1) { // QUIT
-									exitGame = true;
-								}
+								if (titleMenuOption == 0) { // PLAY GAME
+                                    currentScreen = STORY;
+                                } else if (titleMenuOption == 1) { // QUIT
+                                    exitGame = true;
+                                }
 							}
 						} break;
+            case STORY: {
+                            DrawText("STORY SCREEN", 20, 20, 40, LIGHTGRAY);
+                            if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
+                                if (titleMenuOption == 0) { // PLAY
+                                    currentLevel = 1;
+                                    player.position = levels[0].spawnPoint;
+                                    player.healthPoints = 5;
+                                    currentScreen = GAMEPLAY;
+                                } else if (titleMenuOption == 1) { // QUIT
+                                    exitGame = true;
+                                }
+                            }
+                        } break;
 			case GAMEPLAY: {
 							   if (IsKeyPressed(KEY_ESCAPE)) {
 								   currentScreen = PAUSE;
@@ -483,13 +494,14 @@ int main() {
 									   }
 								   }
 
-								   // Draw SOLID Ray onto the texture
-								   Vector2 endPos = {sunPos.x + rayDir.x * nearestDist,
-									   sunPos.y + rayDir.y * nearestDist};
-
+                                   float drawDist = nearestDist + 20.0f;
+                                   
+                                   Vector2 endPos = {sunPos.x + rayDir.x * drawDist,
+                                       sunPos.y + rayDir.y * drawDist};
 								   if (hitPlayer) {
 									   rayColor = RED; // Solid Red
 									   anyRayHitPlayer = true;
+                                       endPos = (Vector2){sunPos.x + rayDir.x * nearestDist, sunPos.y + rayDir.y * nearestDist};
 								   }
 
 								   DrawLineEx(sunPos, endPos, 40.0f, rayColor);
