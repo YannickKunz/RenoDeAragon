@@ -1,4 +1,5 @@
 #include <iostream>
+#include "raylib.h"
 
 #define ENEMY_SPEED 80.0f
 
