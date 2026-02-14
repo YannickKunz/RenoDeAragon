@@ -1,286 +1,382 @@
 #include "raylib.h"
+#include "resource_dir.h" // utility header for SearchAndSetResourceDir
+#include "star_donut.h"   // our star donut demo code
 #include <iostream>
-#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
-#include "star_donut.h"	// our star donut demo code
+
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
 #define JUMP_SPEED 600.0f
 #define MOVEMENT 200.0f
 
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, PAUSE, ENDING, CREDIT } GameScreen;
+typedef enum GameScreen {
+  LOGO = 0,
+  TITLE,
+  GAMEPLAY,
+  PAUSE,
+  ENDING,
+  CREDIT
+} GameScreen;
 
 typedef struct Player {
-	Vector2 position;
-	Vector2 size;
-	float speed;
-	bool canJump;
-	bool toggle;
-	float toggleCooldown;
+  Vector2 position;
+  Vector2 size;
+  float speed;
+  bool canJump;
+  bool toggle;
+  float toggleCooldown;
 } Player;
 
-void updatePlayer(Player& player, Rectangle (&platforms)[], int platformsLength) {
-	float delta = GetFrameTime();
-	player.toggleCooldown += delta; // could this overflow?
-	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
-	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
-	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
-		player.toggle = !player.toggle;
-		player.toggleCooldown = 0.0f;
-	}
-	if (IsKeyDown(KEY_SPACE) && player.canJump) {
-		player.speed -= JUMP_SPEED;
-		player.canJump = false;
-	}
+void updatePlayer(Player &player, Rectangle *platforms, int platformsLength) {
+  float delta = GetFrameTime();
+  player.toggleCooldown += delta; // could this overflow?
+  // --- Horizontal movement & collision ---
+  if (IsKeyDown(KEY_A))
+    player.position.x -= MOVEMENT * delta;
+  if (IsKeyDown(KEY_D))
+    player.position.x += MOVEMENT * delta;
 
-	bool hitObstacle = false;
-	for (int i = 0; i < platformsLength; i++) {
-		Rectangle plat = platforms[i];
-		if (plat.x <= player.position.x && (plat.x + plat.width) >= player.position.x) {
-			if (plat.y >= player.position.y && plat.y <= (player.position.y + player.speed * delta)) {
-				hitObstacle = true;
-				player.speed = 0.0f;
-				player.position.y = plat.y;
-				break;
-			}
-		}
-	}
+  // Check horizontal collisions (player sides vs platform sides)
+  for (int i = 0; i < platformsLength; i++) {
+    Rectangle plat = platforms[i];
+    float playerLeft = player.position.x - player.size.x / 2;
+    float playerRight = player.position.x + player.size.x / 2;
+    float playerTop = player.position.y - player.size.y;
+    float playerBottom = player.position.y;
 
-	if (hitObstacle) {
-		player.canJump = true;
-	} else {
-		player.position.y += player.speed * delta;
-		player.speed += G * delta;
-		player.canJump = false;
-	}
+    // Check if vertically overlapping
+    if (playerBottom > plat.y && playerTop < plat.y + plat.height) {
+      // Check if horizontally overlapping
+      if (playerRight > plat.x && playerLeft < plat.x + plat.width) {
+        // Push out from whichever side is closer
+        float overlapLeft = playerRight - plat.x;
+        float overlapRight = (plat.x + plat.width) - playerLeft;
+        if (overlapLeft < overlapRight) {
+          player.position.x = plat.x - player.size.x / 2; // push left
+        } else {
+          player.position.x =
+              plat.x + plat.width + player.size.x / 2; // push right
+        }
+      }
+    }
+  }
 
-	Vector2 playerPosition = { player.position.x - player.size.x/2, player.position.y - player.size.y };
-	DrawRectangleV(playerPosition, player.size, BLUE);
+  if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
+    player.toggle = !player.toggle;
+    player.toggleCooldown = 0.0f;
+  }
+  if (IsKeyDown(KEY_SPACE) && player.canJump) {
+    player.speed -= JUMP_SPEED;
+    player.canJump = false;
+  }
+
+  // --- Vertical collision ---
+  bool hitObstacle = false;
+  for (int i = 0; i < platformsLength; i++) {
+    Rectangle plat = platforms[i];
+    float playerLeft = player.position.x - player.size.x / 2;
+    float playerRight = player.position.x + player.size.x / 2;
+    if (playerRight >= plat.x && playerLeft <= (plat.x + plat.width)) {
+      // Landing on top of platform (falling down)
+      if (player.speed > 0 && plat.y >= player.position.y &&
+          plat.y <= (player.position.y + player.speed * delta)) {
+        hitObstacle = true;
+        player.speed = 0.0f;
+        player.position.y = plat.y;
+        break;
+      }
+      // Head hitting bottom of platform (jumping up)
+      float playerHead = player.position.y - player.size.y;
+      float newHead = playerHead + player.speed * delta;
+      float platBottom = plat.y + plat.height;
+      if (player.speed < 0 && newHead <= platBottom &&
+          playerHead >= platBottom) {
+        player.speed = 0.0f;
+        player.position.y = platBottom + player.size.y;
+      }
+    }
+  }
+
+  if (hitObstacle) {
+    player.canJump = true;
+  } else {
+    player.position.y += player.speed * delta;
+    player.speed += G * delta;
+    player.canJump = false;
+  }
+
+  Vector2 playerPosition = {player.position.x - player.size.x / 2,
+                            player.position.y - player.size.y};
+  DrawRectangleV(playerPosition, player.size, BLUE);
+  // DrawCircleV(player.position, 5.0f, GOLD);
+  DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
+                                   player.position.y - player.size.y,
+                                   player.size.x, player.size.y},
+                       2.0f, BLACK);
 }
 
-int main () {
-	// Tell the window to use vsync and work on high DPI displays
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-	// Create the window and OpenGL context
-	const int screenWidth = 1280;
-	const int screenHeight = 800;
-	InitWindow(screenWidth, screenHeight, "LVLUP Game Jam 2026");
-	SetExitKey(KEY_NULL);
+int main() {
+  // Tell the window to use vsync and work on high DPI displays
+  SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
+  // Create the window and OpenGL context
+  const int screenWidth = 1280;
+  const int screenHeight = 800;
+  InitWindow(screenWidth, screenHeight, "LVLUP Game Jam 2026");
+  SetExitKey(KEY_NULL);
 
-	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
-	SearchAndSetResourceDir("resources");
+  // Utility function from resource_dir.h to find the resources folder and set
+  // it as the current working directory so we can load from it
+  SearchAndSetResourceDir("resources");
 
-	Player player = { 0 };
-	player.position = { 50, screenHeight - 100 };
-	player.size = { 50, 50 };
-	player.toggleCooldown = 2.0f;
+  Player player = {0};
+  player.position = {50, screenHeight - 100};
+  player.size = {40, 80};
+  player.toggleCooldown = 2.0f;
 
-	Rectangle platforms[] = {
-		{400, 600, 100, 10},
-		{600, 500, 100, 10},
-		{0, screenHeight - 50, screenWidth, 50},
-	};
+  Rectangle platforms[] = {
+      {400, 600, 100, 10},
+      {600, 500, 100, 10},
+      {0, screenHeight - 50, screenWidth, 50},
+  };
 
-	int platformsLength = sizeof(platforms)/sizeof(platforms[0]);
+  int platformsLength = sizeof(platforms) / sizeof(platforms[0]);
 
-	// --- SETUP STAR DONUT ---
-	StarDonutState donutState; 
-	InitStarDonut(&donutState, screenWidth, screenHeight);
+  // --- SETUP STAR DONUT ---
+  StarDonutState donutState;
+  InitStarDonut(&donutState, screenWidth, screenHeight);
 
-	GameScreen currentScreen = LOGO;
-	int currentLevel = 0;              // Track current level (used on GAMEPLAY screen) 
-	bool exitGame = false;              // Track when the user wants to exit the game
+  GameScreen currentScreen = LOGO;
+  int currentLevel = 0;  // Track current level (used on GAMEPLAY screen)
+  bool exitGame = false; // Track when the user wants to exit the game
 
-	int titleMenuOption = 0;
-	int pauseMenuOption = 0;
+  int titleMenuOption = 0;
+  int pauseMenuOption = 0;
 
-	int framesCounter = 0;          // Useful to count frames
+  int framesCounter = 0; // Useful to count frames
 
-	while (!WindowShouldClose() && !exitGame) {		// run the loop until the user presses ESCAPE or presses the Close button on the window
-		// Update
-		switch (currentScreen) {
-			case LOGO: {
-						   // TODO: Update LOGO screen variables here!
+  while (!WindowShouldClose() &&
+         !exitGame) { // run the loop until the user presses ESCAPE or presses
+                      // the Close button on the window
+    // Update
+    switch (currentScreen) {
+    case LOGO: {
+      // TODO: Update LOGO screen variables here!
 
-						   framesCounter++;    // Count frames
+      framesCounter++; // Count frames
 
-						   // Wait for 2 seconds (120 frames) before jumping to TITLE screen
-						   if (framesCounter > 120) {
-							   currentScreen = TITLE;
-						   }
-					   } break;
-			case TITLE:
-					   {
-						   // Simple Menu Navigation
-						   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) titleMenuOption++;
-						   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) titleMenuOption--;
+      // Wait for 2 seconds (120 frames) before jumping to TITLE screen
+      if (framesCounter > 120) {
+        currentScreen = TITLE;
+      }
+    } break;
+    case TITLE: {
+      // Simple Menu Navigation
+      if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+        titleMenuOption++;
+      if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+        titleMenuOption--;
 
-						   // Clamp options (0 to 1)
-						   if (titleMenuOption < 0) titleMenuOption = 1;
-						   if (titleMenuOption > 1) titleMenuOption = 0;
+      // Clamp options (0 to 1)
+      if (titleMenuOption < 0)
+        titleMenuOption = 1;
+      if (titleMenuOption > 1)
+        titleMenuOption = 0;
 
-						   if (IsKeyPressed(KEY_ENTER)) {
-							   if (titleMenuOption == 0) { // PLAY
-								   currentLevel = 1; // Reset level
-								   currentScreen = GAMEPLAY;
-							   }
-							   else if (titleMenuOption == 1) { // QUIT
-								   exitGame = true;
-							   }
-						   }
-					   } break;
-			case GAMEPLAY:
-					   {
-						   // TODO: Update GAMEPLAY screen variables here!
-						   if (IsKeyPressed(KEY_ESCAPE)) {
-							   currentScreen = PAUSE;
-							   pauseMenuOption = 0; // Reset pause menu option
-						   }
-						   // Press enter to change to ENDING screen
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
-							   currentLevel++; // Increment level (just for demonstration, not used in this example)
-							   if (currentLevel > 3) {
-								   currentScreen = ENDING;
-							   }
-						   }
-					   } break;
-			case PAUSE:
-					   {
-						   // Simple Pause Menu Navigation
-						   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) pauseMenuOption++;
-						   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) pauseMenuOption--;
+      if (IsKeyPressed(KEY_ENTER)) {
+        if (titleMenuOption == 0) { // PLAY
+          currentLevel = 1;         // Reset level
+          currentScreen = GAMEPLAY;
+        } else if (titleMenuOption == 1) { // QUIT
+          exitGame = true;
+        }
+      }
+    } break;
+    case GAMEPLAY: {
+      // TODO: Update GAMEPLAY screen variables here!
+      if (IsKeyPressed(KEY_ESCAPE)) {
+        currentScreen = PAUSE;
+        pauseMenuOption = 0; // Reset pause menu option
+      }
+      // Press enter to change to ENDING screen
+      if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
+        currentLevel++; // Increment level (just for demonstration, not used in
+                        // this example)
+        if (currentLevel > 3) {
+          currentScreen = ENDING;
+        }
+      }
+    } break;
+    case PAUSE: {
+      // Simple Pause Menu Navigation
+      if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+        pauseMenuOption++;
+      if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+        pauseMenuOption--;
 
-						   // Clamp options (0 to 1)
-						   if (pauseMenuOption < 0) pauseMenuOption = 1;
-						   if (pauseMenuOption > 1) pauseMenuOption = 0;
+      // Clamp options (0 to 1)
+      if (pauseMenuOption < 0)
+        pauseMenuOption = 1;
+      if (pauseMenuOption > 1)
+        pauseMenuOption = 0;
 
-						   if (IsKeyPressed(KEY_ENTER)) {
-							   if (pauseMenuOption == 0) { // RESUME
-								   currentScreen = GAMEPLAY;
-							   }
-							   else if (pauseMenuOption == 1) { // QUIT TO TITLE
-								   currentScreen = TITLE;
-								   titleMenuOption = 0;
-							   }
-						   }
-						   if (IsKeyPressed(KEY_ESCAPE)) // Toggle back to game
-						   {
-							   currentScreen = GAMEPLAY;
-						   }
+      if (IsKeyPressed(KEY_ENTER)) {
+        if (pauseMenuOption == 0) { // RESUME
+          currentScreen = GAMEPLAY;
+        } else if (pauseMenuOption == 1) { // QUIT TO TITLE
+          currentScreen = TITLE;
+          titleMenuOption = 0;
+        }
+      }
+      if (IsKeyPressed(KEY_ESCAPE)) // Toggle back to game
+      {
+        currentScreen = GAMEPLAY;
+      }
 
-					   } break;
-			case ENDING:
-					   {
-						   // TODO: Update ENDING screen variables here!
+    } break;
+    case ENDING: {
+      // TODO: Update ENDING screen variables here!
 
-						   // Press enter to return to TITLE screen
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
-						   {
-							   currentScreen = CREDIT;
-						   }
-					   } break;
-			case CREDIT:
-					   {
-						   DrawText("CREDITS SCREEN", 20, 20, 40, LIGHTGRAY);
-						   if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
-						   {
-							   currentScreen = TITLE;
-						   }
-					   } break;
-			default: break;
-		}
-		//----------------------------------------------------------------------------------
-		// Drawing
-		//----------------------------------------------------------------------------------
-		BeginDrawing();
+      // Press enter to return to TITLE screen
+      if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
+        currentScreen = CREDIT;
+      }
+    } break;
+    case CREDIT: {
+      DrawText("CREDITS SCREEN", 20, 20, 40, LIGHTGRAY);
+      if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) {
+        currentScreen = TITLE;
+      }
+    } break;
+    default:
+      break;
+    }
+    //----------------------------------------------------------------------------------
+    // Drawing
+    //----------------------------------------------------------------------------------
+    BeginDrawing();
 
-		// Setup the back buffer for drawing (clear color and depth buffers)
-		ClearBackground(BLACK);
-		switch(currentScreen)
-		{
-			case LOGO:
-				{
-					DrawStarDonut(&donutState, screenWidth, screenHeight);
-					// TODO: Draw LOGO screen here!
+    // Setup the back buffer for drawing (clear color and depth buffers)
+    ClearBackground(BLACK);
+    switch (currentScreen) {
+    case LOGO: {
+      DrawStarDonut(&donutState, screenWidth, screenHeight);
+      // TODO: Draw LOGO screen here!
 
-				} break;
-			case TITLE:
-				{
-					DrawRectangle(0, 0, screenWidth, screenHeight, DARKGREEN);
-					DrawText("TITLE SCREEN", screenWidth/2 - MeasureText("TITLE SCREEN", 30)/2, screenHeight/3, 30, YELLOW);
+    } break;
+    case TITLE: {
+      DrawRectangle(0, 0, screenWidth, screenHeight, DARKGREEN);
+      DrawText("TITLE SCREEN",
+               screenWidth / 2 - MeasureText("TITLE SCREEN", 30) / 2,
+               screenHeight / 3, 30, YELLOW);
 
-					// Draw Menu
-					Color playColor = (titleMenuOption == 0) ? YELLOW : WHITE;
-					Color quitColor = (titleMenuOption == 1) ? YELLOW : WHITE;
+      // Draw Menu
+      Color playColor = (titleMenuOption == 0) ? YELLOW : WHITE;
+      Color quitColor = (titleMenuOption == 1) ? YELLOW : WHITE;
 
-					DrawText("PLAY GAME", screenWidth/2 - MeasureText("PLAY GAME", 30)/2, screenHeight/2, 30, playColor);
-					DrawText("QUIT", screenWidth/2 - MeasureText("QUIT", 30)/2, screenHeight/2 + 50, 30, quitColor);
+      DrawText("PLAY GAME", screenWidth / 2 - MeasureText("PLAY GAME", 30) / 2,
+               screenHeight / 2, 30, playColor);
+      DrawText("QUIT", screenWidth / 2 - MeasureText("QUIT", 30) / 2,
+               screenHeight / 2 + 50, 30, quitColor);
 
-					if (titleMenuOption == 0) DrawText(">", screenWidth/2 - MeasureText("PLAY GAME", 30)/2 - 30, screenHeight/2, 30, YELLOW);
-					if (titleMenuOption == 1) DrawText(">", screenWidth/2 - MeasureText("QUIT", 30)/2 - 30, screenHeight/2 + 50, 30, YELLOW);
+      if (titleMenuOption == 0)
+        DrawText(">", screenWidth / 2 - MeasureText("PLAY GAME", 30) / 2 - 30,
+                 screenHeight / 2, 30, YELLOW);
+      if (titleMenuOption == 1)
+        DrawText(">", screenWidth / 2 - MeasureText("QUIT", 30) / 2 - 30,
+                 screenHeight / 2 + 50, 30, YELLOW);
 
-				} break;
-			case GAMEPLAY:
-				{
-					DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
-					DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40, MAROON);
-					DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", screenWidth/2 - MeasureText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 20)/2, screenHeight - 100, 20, MAROON);
-					// draw some text using the default font
-					std::string debugText = "Debug coordinates: " + std::to_string(player.position.x) 
-						+ ", " + std::to_string(player.position.y)
-						+ "\nToggle: " + std::to_string(player.toggle)
-						+ ", Time: " + std::to_string(player.toggleCooldown);
+    } break;
+    case GAMEPLAY: {
+      DrawRectangle(0, 0, screenWidth, screenHeight, PURPLE);
+      DrawText(TextFormat("GAMEPLAY - LEVEL %d", currentLevel), 20, 20, 40,
+               MAROON);
+      DrawText("PRESS ENTER to WIN LEVEL / ESC to PAUSE",
+               screenWidth / 2 -
+                   MeasureText("PRESS ENTER to WIN LEVEL / ESC to PAUSE", 20) /
+                       2,
+               screenHeight - 100, 20, MAROON);
+      // draw some text using the default font
+      std::string debugText =
+          "Debug coordinates: " + std::to_string(player.position.x) + ", " +
+          std::to_string(player.position.y) +
+          "\nToggle: " + std::to_string(player.toggle) +
+          ", Time: " + std::to_string(player.toggleCooldown);
 
-					DrawText(debugText.c_str(), 10, 10, 20, WHITE);
+      DrawText(debugText.c_str(), 10, 10, 20, WHITE);
 
-					updatePlayer(player, platforms, platformsLength);
-					for (int i = 0; i < platformsLength; i++) {
-						Rectangle rec = platforms[i];
-						DrawRectangleRec(rec, GRAY);
-					}
+      updatePlayer(player, platforms, platformsLength);
+      for (int i = 0; i < platformsLength; i++) {
+        Rectangle rec = platforms[i];
+        DrawRectangleRec(rec, GRAY);
+      }
 
-				} break;
-			case PAUSE:
-				{
-					// Draw gameplay background dimmed (optional logic, hard to do with switch unless we draw gameplay first)
-					// For simplicity, just a grey background
-					DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
+    } break;
+    case PAUSE: {
+      // Draw gameplay background dimmed (optional logic, hard to do with switch
+      // unless we draw gameplay first) For simplicity, just a grey background
+      DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
 
-					DrawText("PAUSED", screenWidth/2 - MeasureText("PAUSED", 40)/2, screenHeight/4, 40, WHITE);
+      DrawText("PAUSED", screenWidth / 2 - MeasureText("PAUSED", 40) / 2,
+               screenHeight / 4, 40, WHITE);
 
-					// Draw Menu
-					Color resumeColor = (pauseMenuOption == 0) ? YELLOW : WHITE;
-					Color quitColor = (pauseMenuOption == 1) ? YELLOW : WHITE;
+      // Draw Menu
+      Color resumeColor = (pauseMenuOption == 0) ? YELLOW : WHITE;
+      Color quitColor = (pauseMenuOption == 1) ? YELLOW : WHITE;
 
-					DrawText("RESUME", screenWidth/2 - MeasureText("RESUME", 30)/2, screenHeight/2, 30, resumeColor);
-					DrawText("QUIT TO TITLE", screenWidth/2 - MeasureText("QUIT TO TITLE", 30)/2, screenHeight/2 + 50, 30, quitColor);
+      DrawText("RESUME", screenWidth / 2 - MeasureText("RESUME", 30) / 2,
+               screenHeight / 2, 30, resumeColor);
+      DrawText("QUIT TO TITLE",
+               screenWidth / 2 - MeasureText("QUIT TO TITLE", 30) / 2,
+               screenHeight / 2 + 50, 30, quitColor);
 
-					if (pauseMenuOption == 0) DrawText(">", screenWidth/2 - MeasureText("RESUME", 30)/2 - 30, screenHeight/2, 30, YELLOW);
-					if (pauseMenuOption == 1) DrawText(">", screenWidth/2 - MeasureText("QUIT TO TITLE", 30)/2 - 30, screenHeight/2 + 50, 30, YELLOW);
+      if (pauseMenuOption == 0)
+        DrawText(">", screenWidth / 2 - MeasureText("RESUME", 30) / 2 - 30,
+                 screenHeight / 2, 30, YELLOW);
+      if (pauseMenuOption == 1)
+        DrawText(">",
+                 screenWidth / 2 - MeasureText("QUIT TO TITLE", 30) / 2 - 30,
+                 screenHeight / 2 + 50, 30, YELLOW);
 
-				} break;
-			case ENDING:
-				{
-					// TODO: Draw ENDING screen here!
-					DrawRectangle(0, 0, screenWidth, screenHeight, BLUE);
-					DrawText("ENDING SCREEN", screenWidth/2 - MeasureText("ENDING SCREEN", 40)/2, screenHeight/4, 40, LIGHTGRAY);
-					DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", screenWidth/2 - MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20)/2, screenHeight - 100, 20, LIGHTGRAY);
+    } break;
+    case ENDING: {
+      // TODO: Draw ENDING screen here!
+      DrawRectangle(0, 0, screenWidth, screenHeight, BLUE);
+      DrawText("ENDING SCREEN",
+               screenWidth / 2 - MeasureText("ENDING SCREEN", 40) / 2,
+               screenHeight / 4, 40, LIGHTGRAY);
+      DrawText(
+          "PRESS ENTER or TAP to RETURN to TITLE SCREEN",
+          screenWidth / 2 -
+              MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20) /
+                  2,
+          screenHeight - 100, 20, LIGHTGRAY);
 
-				} break;
-			case CREDIT:
-				{
-					DrawRectangle(0, 0, screenWidth, screenHeight, DARKGRAY);
-					DrawText("CREDITS", screenWidth/2 - MeasureText("CREDITS", 40)/2, screenHeight/4, 40, LIGHTGRAY);
-					DrawText("This game was developed by Reino de Aragon", screenWidth/2 - MeasureText("This game was developed by Reino de Aragon", 20)/2, screenHeight/2, 20, LIGHTGRAY);
-					DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", screenWidth/2 - MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20)/2, screenHeight - 100, 20, LIGHTGRAY);
+    } break;
+    case CREDIT: {
+      DrawRectangle(0, 0, screenWidth, screenHeight, DARKGRAY);
+      DrawText("CREDITS", screenWidth / 2 - MeasureText("CREDITS", 40) / 2,
+               screenHeight / 4, 40, LIGHTGRAY);
+      DrawText(
+          "This game was developed by Reino de Aragon",
+          screenWidth / 2 -
+              MeasureText("This game was developed by Reino de Aragon", 20) / 2,
+          screenHeight / 2, 20, LIGHTGRAY);
+      DrawText(
+          "PRESS ENTER or TAP to RETURN to TITLE SCREEN",
+          screenWidth / 2 -
+              MeasureText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 20) /
+                  2,
+          screenHeight - 100, 20, LIGHTGRAY);
 
-				} break;
-			default: break;
-		}
+    } break;
+    default:
+      break;
+    }
 
-		// end the frame and get ready for the next one  (display frame, poll input, etc...)
-		EndDrawing();
-	}
-	// destroy the window and cleanup the OpenGL context
-	CloseWindow();
-	return 0;
+    // end the frame and get ready for the next one  (display frame, poll input,
+    // etc...)
+    EndDrawing();
+  }
+  // destroy the window and cleanup the OpenGL context
+  CloseWindow();
+  return 0;
 }
