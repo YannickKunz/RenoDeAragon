@@ -11,7 +11,12 @@ typedef struct Enemy {
   int patrolPlatformIndex; // which platform this enemy patrols on
 } Enemy;
 
-// TODO: remove 1 HP on every hit
+extern bool playerToggle;
+
+bool isEnemyActive() {
+	return !playerToggle;
+}
+
 void updateEnemy(Enemy &enemy, Rectangle platform, const float delta) {
   if ((!enemy.patrolSide && enemy.position.x <= platform.x) ||
       (enemy.patrolSide && enemy.position.x >= platform.x + platform.width)) {

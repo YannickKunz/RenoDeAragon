@@ -15,17 +15,19 @@ typedef struct Player {
 	Vector2 size;
 	float speed;
 	bool canJump;
-	bool toggle;
 	float toggleCooldown;
 	int healthPoints;
 } Player;
+
+bool playerToggle = false;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
 	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
 	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
+
 	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
-		player.toggle = !player.toggle;
+		playerToggle = !playerToggle;
 		player.toggleCooldown = 0.0f;
 	}
 	if (IsKeyDown(KEY_SPACE) && player.canJump) {
@@ -36,6 +38,10 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
 	// Check horizontal collisions (player sides vs platform sides)
 	for (int i = 0; i < platforms.size(); i++) {
 		Rectangle platformPosition = platforms[i].position;
+		if (!isPlatformActive(platforms[i])) {
+			continue;
+		}
+
 		float playerLeft = player.position.x - player.size.x / 2;
 		float playerRight = player.position.x + player.size.x / 2;
 		float playerTop = player.position.y - player.size.y;
@@ -62,34 +68,31 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
 		player.position.y - player.size.y, player.size.x,
 		player.size.y};
 
-	for (Enemy &enemy : enemies) {
-		Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
-			enemy.position.y - enemy.size.y, enemy.size.x,
-			enemy.size.y};
+	if (isEnemyActive()) {
+		for (Enemy &enemy : enemies) {
+			Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
+				enemy.position.y - enemy.size.y, enemy.size.x,
+				enemy.size.y};
 
-		if (CheckCollisionRecs(playerRect, enemyRect)) {
-			player.healthPoints = player.healthPoints - 5;
-			if (player.healthPoints <= 0) {
-				// Handle player death (e.g., reset position, reduce lives, etc.)
-				player.position = spawnPoint; // Reset position for demonstration
-				player.healthPoints = 5;      // Reset health points
+			if (CheckCollisionRecs(playerRect, enemyRect)) {
+				player.healthPoints = player.healthPoints - 5;
+				if (player.healthPoints <= 0) {
+					// Handle player death (e.g., reset position, reduce lives, etc.)
+					player.position = spawnPoint; // Reset position for demonstration
+					player.healthPoints = 5;      // Reset health points
+				}
 			}
 		}
-	}
-
-	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
-		player.toggle = !player.toggle;
-		player.toggleCooldown = 0.0f;
-	}
-	if (IsKeyDown(KEY_SPACE) && player.canJump) {
-		player.speed -= JUMP_SPEED;
-		player.canJump = false;
 	}
 
 	// --- Vertical collision ---
 	bool hitObstacle = false;
 	for (int i = 0; i < platforms.size(); i++) {
 		Rectangle platformPosition = platforms[i].position;
+		if (!isPlatformActive(platforms[i])) {
+			continue;
+		}
+
 		float playerLeft = player.position.x - player.size.x / 2;
 		float playerRight = player.position.x + player.size.x / 2;
 		if (playerRight >= platformPosition.x && playerLeft <= (platformPosition.x + platformPosition.width)) {
@@ -126,10 +129,13 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
 		player.canJump = false;
 	}
 
+}
+
+void drawPlayer(Player &player) {
 	Vector2 playerPosition = {player.position.x - player.size.x / 2,
 		player.position.y - player.size.y};
 	DrawRectangleV(playerPosition, player.size, BLUE);
-	// DrawCircleV(player.position, 5.0f, GOLD);
+
 	DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
 			player.position.y - player.size.y,
 			player.size.x, player.size.y},
