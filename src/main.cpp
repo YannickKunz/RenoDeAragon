@@ -26,6 +26,11 @@ typedef struct Player {
   float toggleCooldown;
 } Player;
 
+int currentLevel = 0;
+bool exitGame = false; // Track when the user wants to exit the game
+int titleMenuOption = 0;
+int pauseMenuOption = 0;
+
 void updatePlayer(Player &player, Rectangle *platforms, int platformsLength) {
   float delta = GetFrameTime();
   player.toggleCooldown += delta; // could this overflow?
