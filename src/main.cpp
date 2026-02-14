@@ -35,7 +35,7 @@ typedef struct Cloud {
 
 struct Level {
     Vector2 spawnPoint;
-    Enemy enemy;
+	std::vector<Enemy> enemies;
     std::vector<Platform> platforms;
     std::vector<Cloud> clouds;
     Vector2 sunPosition;
@@ -76,7 +76,7 @@ std::vector<Level> InitLevels() {
         {{400, 600, 100, 10}, basic},
         {{600, 500, 100, 10}, basic},
         {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl1.enemy = {lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0};
+    lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
     lvl1.clouds = {
         {{100, 250, 200, 40}, 150.0f, 50, 600, true},
         {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
@@ -92,7 +92,7 @@ std::vector<Level> InitLevels() {
         {{500, 450, 100, 10}, basic},
         {{700, 350, 100, 10}, basic},
         {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl2.enemy = {{lvl2.platforms[1].position.x + lvl2.platforms[1].position.width / 2, lvl2.platforms[1].position.y}, {30, 30}, false, 1};
+    lvl2.enemies = {{{lvl2.platforms[1].position.x + lvl2.platforms[1].position.width / 2, lvl2.platforms[1].position.y}, {30, 30}, false, 1}};
     lvl2.clouds = {
         {{200, 150, 180, 40}, 120.0f, 100, 500, true},
         {{800, 300, 220, 40}, 90.0f, 600, 1000, false},
@@ -110,7 +110,7 @@ std::vector<Level> InitLevels() {
         {{800, 400, 100, 10}, basic},
         {{1000, 300, 100, 10}, basic},
         {{0, (float)(SCREEN_HEIGHT + 200), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl3.enemy = {{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {30, 30}, false, 2};
+    lvl3.enemies = {{{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {30, 30}, false, 2}};
     lvl3.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
     lvl3.sunPosition = {200.0f, -50.0f};
     levels.push_back(lvl3);
@@ -161,7 +161,8 @@ void UpdateGameplay(GameState& game, float delta) {
     Level& currentLvlData = game.levels[game.currentLevelIndex];
 
     // 1. Update Player
-    updatePlayer(game.player, currentLvlData.platforms.data(), (int)currentLvlData.platforms.size(), currentLvlData.enemy, delta, currentLvlData.spawnPoint);
+    updatePlayer(game.player, currentLvlData.platforms,
+			currentLvlData.enemies, delta, currentLvlData.spawnPoint);
 
     // 2. Update Enemy
     //if (!currentLvlData.platforms.empty()) {
@@ -293,7 +294,7 @@ void DrawGameplay(GameState& game) {
 
     // Platforms
     for (const auto& plat : currentLvlData.platforms) {
-        DrawRectangleRec(plat.position, GRAY);
+		drawPlatform(plat);
     }
 
     // Clouds
@@ -316,10 +317,10 @@ void DrawGameplay(GameState& game) {
     // Assuming enemy was drawn previously or not crucial for refactor demo, skipping explicit draw call if not found in original snippet logic.
     // Draw Enemy
     if (!currentLvlData.platforms.empty()) {
-        int pi = currentLvlData.enemy.patrolPlatformIndex;
-        // We need 'delta' here. Since DrawGameplay doesn't typically take delta, 
-        // strictly speaking we should pass it, or just use GetFrameTime() directly here.
-        updateEnemy(currentLvlData.enemy, currentLvlData.platforms[pi].position, GetFrameTime());
+		for (Enemy &enemy : currentLvlData.enemies) {
+			int pi = enemy.patrolPlatformIndex;
+			updateEnemy(enemy, currentLvlData.platforms[pi].position, GetFrameTime());
+		}
     }
     // Particles
     UpdateParticles(&game.particleSystem);

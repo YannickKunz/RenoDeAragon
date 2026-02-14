@@ -13,7 +13,7 @@ typedef struct Platform {
   PlatformType type;
 } Platform;
 
-void drawPlatform(Platform &platform) {
+void drawPlatform(const Platform& platform) {
   Color color;
   if (platform.type == mushroom) {
     color = MAROON;

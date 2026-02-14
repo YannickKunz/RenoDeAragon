@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "platform.cpp"
 #include "enemy.cpp"
+#include <vector>
 
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
@@ -19,9 +20,7 @@ typedef struct Player {
 	int healthPoints;
 } Player;
 
-void updatePlayer(Player &player, Platform *platforms,
-		int platformsLength, Enemy &enemy, const float delta, 
-	Vector2 spawnPoint) {
+void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
 	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
 	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
@@ -35,7 +34,7 @@ void updatePlayer(Player &player, Platform *platforms,
 	}
 
 	// Check horizontal collisions (player sides vs platform sides)
-	for (int i = 0; i < platformsLength; i++) {
+	for (int i = 0; i < platforms.size(); i++) {
 		Rectangle platformPosition = platforms[i].position;
 		float playerLeft = player.position.x - player.size.x / 2;
 		float playerRight = player.position.x + player.size.x / 2;
@@ -63,16 +62,18 @@ void updatePlayer(Player &player, Platform *platforms,
 		player.position.y - player.size.y, player.size.x,
 		player.size.y};
 
-	Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
-		enemy.position.y - enemy.size.y, enemy.size.x,
-		enemy.size.y};
+	for (Enemy &enemy : enemies) {
+		Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
+			enemy.position.y - enemy.size.y, enemy.size.x,
+			enemy.size.y};
 
-	if (CheckCollisionRecs(playerRect, enemyRect)) {
-		player.healthPoints = player.healthPoints - 5;
-		if (player.healthPoints <= 0) {
-			// Handle player death (e.g., reset position, reduce lives, etc.)
-			player.position = spawnPoint; // Reset position for demonstration
-			player.healthPoints = 5;      // Reset health points
+		if (CheckCollisionRecs(playerRect, enemyRect)) {
+			player.healthPoints = player.healthPoints - 5;
+			if (player.healthPoints <= 0) {
+				// Handle player death (e.g., reset position, reduce lives, etc.)
+				player.position = spawnPoint; // Reset position for demonstration
+				player.healthPoints = 5;      // Reset health points
+			}
 		}
 	}
 
@@ -87,7 +88,7 @@ void updatePlayer(Player &player, Platform *platforms,
 
 	// --- Vertical collision ---
 	bool hitObstacle = false;
-	for (int i = 0; i < platformsLength; i++) {
+	for (int i = 0; i < platforms.size(); i++) {
 		Rectangle platformPosition = platforms[i].position;
 		float playerLeft = player.position.x - player.size.x / 2;
 		float playerRight = player.position.x + player.size.x / 2;
