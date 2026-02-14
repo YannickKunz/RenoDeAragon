@@ -8,6 +8,7 @@ typedef struct Enemy {
 	bool patrolSide;
 } Enemy;
 
+// TODO: remove 1 HP on every hit
 void updateEnemy(Enemy& enemy, Rectangle& platform, const float delta) {
 	if ((!enemy.patrolSide && enemy.position.x <= platform.x) || (enemy.patrolSide && enemy.position.x >= platform.x + platform.width)) {
 		enemy.patrolSide = !enemy.patrolSide;

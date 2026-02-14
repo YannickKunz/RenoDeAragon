@@ -18,6 +18,7 @@ typedef struct Player {
 	bool canJump;
 	bool toggle;
 	float toggleCooldown;
+	int healthPoints;
 } Player;
 
 int currentLevel = 0;
@@ -175,6 +176,7 @@ int main () {
 	player.position = { 50, screenHeight - 100 };
 	player.size = { 50, 50 };
 	player.toggleCooldown = 2.0f;
+	player.healthPoints = 10;
 
 	Rectangle platforms[] = {
 		{400, 600, 100, 10},
