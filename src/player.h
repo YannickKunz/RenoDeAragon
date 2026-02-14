@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include "platform.h"
+#include "enemy.h"
 
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
@@ -18,7 +19,9 @@ typedef struct Player {
 	int healthPoints;
 } Player;
 
-void updatePlayer(Player& player, Platform* platforms, int platformsLength, const float delta) {
+void updatePlayer(Player &player, Platform *platforms,
+		int platformsLength, Enemy &enemy, const float delta, 
+	Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
 	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
 	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
@@ -55,6 +58,23 @@ void updatePlayer(Player& player, Platform* platforms, int platformsLength, cons
 			}
 		}
 	}
+	// Collision with enemy
+	Rectangle playerRect = {player.position.x - player.size.x / 2,
+		player.position.y - player.size.y, player.size.x,
+		player.size.y};
+
+	Rectangle enemyRect = {enemy.position.x - enemy.size.x / 2,
+		enemy.position.y - enemy.size.y, enemy.size.x,
+		enemy.size.y};
+
+	if (CheckCollisionRecs(playerRect, enemyRect)) {
+		player.healthPoints = player.healthPoints - 5;
+		if (player.healthPoints <= 0) {
+			// Handle player death (e.g., reset position, reduce lives, etc.)
+			player.position = spawnPoint; // Reset position for demonstration
+			player.healthPoints = 5;      // Reset health points
+		}
+	}
 
 	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
 		player.toggle = !player.toggle;
@@ -76,7 +96,7 @@ void updatePlayer(Player& player, Platform* platforms, int platformsLength, cons
 			if (player.speed > 0 && platformPosition.y >= player.position.y &&
 					platformPosition.y <= (player.position.y + player.speed * delta)) {
 				if (platforms[i].type == mushroom) {
-						// jump
+					// jump
 					player.speed = - MUSHROOM_COEFF * JUMP_SPEED;
 				} else {
 					player.speed = 0.0f;
@@ -114,4 +134,3 @@ void updatePlayer(Player& player, Platform* platforms, int platformsLength, cons
 			player.size.x, player.size.y},
 			2.0f, BLACK);
 }
-// void updatePlayer(Player& player, Platform* platforms, int platformsLength, const float delta);
