@@ -1,15 +1,5 @@
-#pragma once
-#include "raylib.h"
+#include "enemy.h"
 #include <iostream>
-
-#define ENEMY_SPEED 80.0f
-
-typedef struct Enemy {
-  Vector2 position;
-  Vector2 size;
-  bool patrolSide;
-  int patrolPlatformIndex; // which platform this enemy patrols on
-} Enemy;
 
 // TODO: remove 1 HP on every hit
 void updateEnemy(Enemy &enemy, Rectangle platform, const float delta) {
