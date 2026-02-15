@@ -185,7 +185,7 @@ void ResetPlayer(GameState &game) {
   if (game.currentLevelIndex < (int)game.levels.size()) {
     game.player.position = game.levels[game.currentLevelIndex].spawnPoint;
     game.player.speed = 0;
-    game.player.healthPoints = 1000;
+    game.player.healthPoints = 3;
     game.player.toggleCooldown = 2.0f;
   }
 }
@@ -646,8 +646,8 @@ int main() {
         
         DrawTexturePro(game.texGameOver2, 
             (Rectangle){0,0, (float)game.texGameOver2.width, (float)game.texGameOver2.height}, 
-            (Rectangle){SCREEN_WIDTH/2 - 200, SCREEN_HEIGHT/4 - 100, 400, 200}, 
-            (Vector2){0,0}, 90.0f, WHITE);
+            (Rectangle){SCREEN_WIDTH/2 - 150, SCREEN_HEIGHT/3 + 150, 400, 200}, 
+            (Vector2){0,0}, -90.0f, WHITE);
         
         // Instructions
         const char* text = "PRESS 'R' TO RESTART";
