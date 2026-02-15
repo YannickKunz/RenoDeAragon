@@ -104,19 +104,10 @@ std::vector<Level> InitLevels() {
     lvl1.backgrounds = std::make_tuple(dayTex, nightTex);
     lvl1.spawnPoint = {SCREEN_WIDTH - 50, (float)(SCREEN_HEIGHT - 100)};
     lvl1.platforms = {
-        // {{0, SCREEN_HEIGHT/2.0f, 550, 30}, basic},
         {{SCREEN_WIDTH - 550, SCREEN_HEIGHT/2.0f, 550, 30}, basic},
-
         {{0, SCREEN_HEIGHT/2.0f, 300, 30}, basic},
-        //{{SCREEN_WIDTH - 300, SCREEN_HEIGHT/2.0f, 300, 30}, basic},
-
         {{400, SCREEN_HEIGHT - 125, 100, 100}, mushroom},
-        // {{800, 500, 100, 10}, flower},
         {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible}};
-    // lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
-    // lvl1.clouds = {
-    //    {{100, 250, 200, 40}, 150.0f, 50, 600, true},
-    //    {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
     lvl1.sunPosition = {SCREEN_WIDTH - 100, -50.0f};
 	  lvl1.isDay = false;
     lvl1.exitZone = {50, (float)(SCREEN_HEIGHT/2.0f) - 65, 100, 50};
