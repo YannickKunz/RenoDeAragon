@@ -17,6 +17,7 @@ typedef struct Player {
   float toggleCooldown;
   int healthPoints;
   Texture2D texture;
+  bool isFacingRight;
 } Player;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint);

@@ -13,8 +13,14 @@ bool playerToggle = false;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
-	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
-	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
+	if (IsKeyDown(KEY_A)) { 
+		player.position.x -= MOVEMENT*delta; 
+		player.isFacingRight = false;
+	}
+	if (IsKeyDown(KEY_D)) { 
+		player.position.x += MOVEMENT*delta;
+		player.isFacingRight = true;
+	}
 	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
 		playerToggle = !playerToggle;
 		player.toggleCooldown = 0.0f;
@@ -133,8 +139,14 @@ void drawPlayer(Player &player) {
         player.size.y
     };
 
+	float srcWidth = (float)player.texture.width;
+
+	if (!player.isFacingRight) {
+		srcWidth = -srcWidth; // Flip horizontally
+	}
+
     // Define the part of the texture to draw (the whole image)
-    Rectangle sourceRect = { 0.0f, 0.0f, (float)player.texture.width, (float)player.texture.height };
+    Rectangle sourceRect = { 0.0f, 0.0f, srcWidth, (float)player.texture.height };
 
     // Draw the texture fitted into the destRect
     DrawTexturePro(player.texture, sourceRect, destRect, (Vector2){0, 0}, 0.0f, WHITE);
