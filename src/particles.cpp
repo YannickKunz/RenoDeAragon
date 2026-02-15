@@ -21,66 +21,65 @@ CircularBuffer InitParticles() {
 
 void FreeParticles(CircularBuffer *cb) { free(cb->buffer); }
 
-void EmitParticle(CircularBuffer *cb, Vector2 pos, ParticleType type) {
-  Particle *p = AddToCircularBuffer(cb);
-  if (p != NULL) {
-    p->position = pos;
-    p->alive = true;
-    p->lifeTime = 0.0f;
-    p->type = type;
+void EmitParticle(CircularBuffer *cb, Vector2 pos, ParticleType type)
+{
+    Particle *p = AddToCircularBuffer(cb);
+    if (p != NULL)
+    {
+        p->position = pos;
+        p->alive = true;
+        p->lifeTime = 0.0f;
+        p->type = type;
 
-    // Random starting parameters
-    float speed = (float)(rand() % 10) / 5.0f;
-    float direction = (float)(rand() % 360);
+        // Random starting parameters
+        float speed = (float)(rand()%10)/5.0f;
+        float direction = (float)(rand()%360);
 
-    switch (type) {
-    case FIRE:
-      p->radius = 1.0f + (rand() % 2);
-      p->color = ORANGE; // Start Orange/Yellow
-      p->velocity = (Vector2){(float)(rand() % 10 - 5) / 40.0f,
-                              -0.3f - (float)(rand() % 10) / 40.0f}; // Upwards
-      break;
-    case SMOKE:
-      p->radius = 5.0f;
-      p->color = Fade(DARKGRAY, 0.5f);
-      p->velocity = (Vector2){(float)(rand() % 10 - 5) / 10.0f, -0.5f};
-      break;
-    default:
-      break;
+        switch (type)
+        {
+            case FIRE:
+                p->radius = 8.0f + (rand()%5);
+                p->color = ORANGE; // Start Orange/Yellow
+                p->velocity = (Vector2){ (float)(rand()%10 - 5)/10.0f, -1.0f - (float)(rand()%10)/10.0f }; // Upwards
+                break;
+            case SMOKE:
+                p->radius = 5.0f;
+                p->color = Fade(DARKGRAY, 0.5f);
+                p->velocity = (Vector2){ (float)(rand()%10 - 5)/10.0f, -0.5f };
+                break;
+            default: break;
+        }
     }
-  }
 }
 
-void UpdateParticles(CircularBuffer *cb) {
-  // Iterate from tail to head
-  for (int i = cb->tail; i != cb->head; i = (i + 1) % MAX_PARTICLES) {
-    if (!cb->buffer[i].alive)
-      continue;
+void UpdateParticles(CircularBuffer *cb)
+{
+    // Iterate from tail to head
+    for (int i = cb->tail; i != cb->head; i = (i + 1) % MAX_PARTICLES)
+    {
+        if (!cb->buffer[i].alive) continue;
 
-    Particle *p = &cb->buffer[i];
-    p->lifeTime += GetFrameTime();
+        Particle *p = &cb->buffer[i];
+        p->lifeTime += GetFrameTime();
 
-    // Specific Logic
-    if (p->type == FIRE) {
-      p->position.x += p->velocity.x;
-      p->position.y += p->velocity.y; // Move up
-      p->radius -= 0.1f;              // Shrink
+        // Specific Logic
+        if (p->type == FIRE) {
+            p->position.x += p->velocity.x;
+            p->position.y += p->velocity.y; // Move up
+            p->radius -= 0.2f; // Shrink
+            
+            // Color shift from Yellow -> Orange -> Red
+            if (p->lifeTime > 0.1f) p->color = RED;
+            if (p->lifeTime > 0.3f) p->color = Fade(MAROON, 0.5f);
 
-      // Color shift from Yellow -> Orange -> Red
-      if (p->lifeTime > 0.05f)
-        p->color = RED;
-      if (p->lifeTime > 0.15f)
-        p->color = Fade(MAROON, 0.5f);
-
-      if (p->radius <= 0.2f)
-        p->alive = false;
+            if (p->radius <= 0.5f) p->alive = false;
+        }
     }
-  }
 
-  // Cleanup dead particles at tail
-  while ((cb->tail != cb->head) && !cb->buffer[cb->tail].alive) {
-    cb->tail = (cb->tail + 1) % MAX_PARTICLES;
-  }
+    // Cleanup dead particles at tail
+    while ((cb->tail != cb->head) && !cb->buffer[cb->tail].alive) {
+        cb->tail = (cb->tail + 1) % MAX_PARTICLES;
+    }
 }
 
 void DrawParticles(CircularBuffer *cb) {

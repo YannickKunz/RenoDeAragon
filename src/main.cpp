@@ -36,13 +36,14 @@ typedef struct Cloud {
 } Cloud;
 
 struct Level {
-    Vector2 spawnPoint;
+  Vector2 spawnPoint;
 	std::vector<Enemy> enemies;
-    std::vector<Platform> platforms;
-    std::vector<Cloud> clouds;
-    Vector2 sunPosition;
-    std::tuple<Texture2D, Texture2D> backgrounds;
+  std::vector<Platform> platforms;
+  std::vector<Cloud> clouds;
+  Vector2 sunPosition;
+  std::tuple<Texture2D, Texture2D> backgrounds;
 	bool isDay;
+  Rectangle exitZone;
 };
 
 // --- GLOBAL STATE (Wrapped in a struct for cleanliness) ---
@@ -52,6 +53,7 @@ struct GameState {
     bool exitGame = false;
     int menuOption = 0; // Shared for Title and Pause
     int framesCounter = 0;
+    int burnTimer = 0;
     
     // Player State
     Player player = {0};
@@ -174,21 +176,44 @@ void UpdateGameplay(GameState &game, float delta) {
   // Prepare Level Data
   Level &currentLvlData = game.levels[game.currentLevelIndex];
 
-    // 1. Update Player
-    updatePlayer(game.player, currentLvlData.platforms,
-			currentLvlData.enemies, delta, currentLvlData.spawnPoint);
-
-    // 3. Update Clouds & Player Cloud Riding
-    for (auto& cloud : currentLvlData.clouds) {
-        // Move Cloud
-        float moveAmount = cloud.speed * delta;
-        if (cloud.movingRight) {
-            cloud.rect.x += moveAmount;
-            if (cloud.rect.x > cloud.rightLimit) cloud.movingRight = false;
-        } else {
-            cloud.rect.x -= moveAmount;
-            if (cloud.rect.x < cloud.leftLimit) cloud.movingRight = true;
+  // Check Burning logic (1 HP per 60 frames)
+    if (game.isPlayerBurning) {
+        game.burnTimer++;
+        // EMIT PARTICLE (Every 15 frames)
+        if (game.burnTimer % 15 == 0) {
+            // Emitting from roughly the center of the player
+            Vector2 firePos = { game.player.position.x, game.player.position.y - game.player.size.y / 2 };
+            EmitParticle(&game.particleSystem, firePos, FIRE);
         }
+        if (game.burnTimer >= 60) {
+            game.player.healthPoints -= 1;
+            game.burnTimer = 0;
+            //std::cout << "Player burned! HP: " << game.player.healthPoints << std::endl;
+        }
+    } else {
+        //game.burnTimer = 0; // Optional: Reset timer if they find shade
+    }
+    // Check for specific death condition if needed, or rely on player update
+    if (game.player.healthPoints <= 0) {
+        // Handle death (e.g., reset level or game over)
+        ResetPlayer(game);
+    }
+
+  // 1. Update Player
+  updatePlayer(game.player, currentLvlData.platforms,
+    currentLvlData.enemies, delta, currentLvlData.spawnPoint);
+
+  // 3. Update Clouds & Player Cloud Riding
+  for (auto& cloud : currentLvlData.clouds) {
+      // Move Cloud
+      float moveAmount = cloud.speed * delta;
+      if (cloud.movingRight) {
+          cloud.rect.x += moveAmount;
+          if (cloud.rect.x > cloud.rightLimit) cloud.movingRight = false;
+      } else {
+          cloud.rect.x -= moveAmount;
+          if (cloud.rect.x < cloud.leftLimit) cloud.movingRight = true;
+      }
 
     // Riding logic
     if (game.player.speed >= 0) { // Only if falling or standing
@@ -221,6 +246,18 @@ void UpdateGameplay(GameState &game, float delta) {
         if (game.currentLevelIndex >= (int)game.levels.size()) {
             game.currentScreen = ENDING;
             game.currentLevelIndex = 0; // Reset for next time
+        } else {
+            ResetPlayer(game);
+        }
+    }
+
+    Rectangle playerRect = {game.player.position.x - game.player.size.x/2, game.player.position.y - game.player.size.y, game.player.size.x, game.player.size.y};
+    // Check collision against the level's exit zone
+    if (CheckCollisionRecs(playerRect, currentLvlData.exitZone)) {
+        game.currentLevelIndex++;
+        if (game.currentLevelIndex >= (int)game.levels.size()) {
+            game.currentScreen = ENDING;
+            game.currentLevelIndex = 0; 
         } else {
             ResetPlayer(game);
         }
@@ -316,19 +353,25 @@ void DrawLighting(GameState &game, Level &level) {
 void DrawGameplay(GameState &game) {
   Level &currentLvlData = game.levels[game.currentLevelIndex];
 
-    // Background
-    Texture2D bg = playerToggle ? std::get<0>(currentLvlData.backgrounds) : std::get<1>(currentLvlData.backgrounds);
+  // Background
+  Texture2D bg = playerToggle ? std::get<0>(currentLvlData.backgrounds) : std::get<1>(currentLvlData.backgrounds);
 	// TODO: possible to fade in?
-    if (bg.id != 0) {
+  if (bg.id != 0) {
 		DrawTexture(bg, 0, 0, WHITE);
 	} else {
 		DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, PURPLE);
 	}
 
-    // Platforms
-    for (const auto& plat : currentLvlData.platforms) {
+  // Platforms
+  for (const auto& plat : currentLvlData.platforms) {
 		drawPlatform(plat);
-    }
+  }
+
+
+  // Draw Exit Zone
+  DrawRectangleRec(currentLvlData.exitZone, Fade(GREEN, 0.3f)); // Transparent green fill
+  DrawRectangleLinesEx(currentLvlData.exitZone, 2.0f, GREEN);   // Solid outline
+  DrawText("EXIT", (int)currentLvlData.exitZone.x + 5, (int)currentLvlData.exitZone.y - 20, 20, GREEN);
 
   // Clouds
   for (const auto &cloud : currentLvlData.clouds) {
@@ -338,11 +381,40 @@ void DrawGameplay(GameState &game) {
 
 	drawPlayer(game.player);
 
+// Player (Primitive drawing, can be replaced with sprite logic)
+  Vector2 playerPosVisual = {game.player.position.x - game.player.size.x / 2, game.player.position.y - game.player.size.y};
+  DrawRectangleV(playerPosVisual, game.player.size, BLUE);
+  DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
+  // --- HP BAR ---
+  float barWidth = 6.0f;
+  float barHeight = 50.0f; 
+  float barX = playerPosVisual.x + game.player.size.x + 6.0f; // Position to the right of player
+  float barY = playerPosVisual.y + (game.player.size.y - barHeight) / 2.0f; // Center vertically relative to player
+
+  // Draw Background
+  DrawRectangle(barX, barY, barWidth, barHeight, Fade(BLACK, 0.5f));
+  DrawRectangleLines(barX, barY, barWidth, barHeight, BLACK);
+
+  // Draw Health Fill
+  float maxHP = 5.0f;
+  float hpPct = (float)game.player.healthPoints / maxHP;
+  if (hpPct < 0.0f) hpPct = 0.0f;
+
+  float fillHeight = barHeight * hpPct;
+  float fillY = barY + (barHeight - fillHeight); // Fill from bottom up
+
+  Color barColor = GREEN;
+  if (game.player.healthPoints <= 2) barColor = RED;
+  else if (game.player.healthPoints <= 4) barColor = ORANGE;
+
+  DrawRectangle(barX, fillY, barWidth, fillHeight, barColor);
+  // --------------
+
   // Light System
   DrawLighting(game, currentLvlData);
 
-    // Sun & Enemy
-    DrawCircleV(currentLvlData.sunPosition, 40, YELLOW);
+  // Sun & Enemy
+  DrawCircleV(currentLvlData.sunPosition, 40, YELLOW);
 	if (isEnemyActive()) {
 		for (Enemy &enemy : currentLvlData.enemies) {
 			int pi = enemy.patrolPlatformIndex;
@@ -352,14 +424,14 @@ void DrawGameplay(GameState &game) {
 
 	// Particles
 	UpdateParticles(&game.particleSystem);
-	if (game.isPlayerBurning) {
-		Vector2 center = {game.player.position.x, game.player.position.y - game.player.size.y / 2};
-		EmitParticle(&game.particleSystem, center, FIRE);
-		EmitParticle(&game.particleSystem, center, FIRE);
-		DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
-	} else {
-		DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
-	}
+	// if (game.isPlayerBurning) {
+	// 	Vector2 center = {game.player.position.x, game.player.position.y - game.player.size.y / 2};
+	// 	EmitParticle(&game.particleSystem, center, FIRE);
+	// 	EmitParticle(&game.particleSystem, center, FIRE);
+	// 	DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
+	// } else {
+	// 	DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
+	// }
 	DrawParticles(&game.particleSystem);
 
 	// Debug
