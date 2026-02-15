@@ -62,6 +62,7 @@ struct GameState {
 
     Texture2D texSpider;
     Texture2D texRoach;
+    Texture2D texExit;
 
     // Platform Textures
     Texture2D texBasic;
@@ -84,7 +85,6 @@ struct GameState {
 };
 
 // --- HELPER FUNCTIONS FOR INITIALIZATION ---
-//
 std::vector<Level> InitLevels() {
   std::vector<Level> levels;
 
@@ -113,7 +113,7 @@ std::vector<Level> InitLevels() {
     lvl1.sunPosition = {SCREEN_WIDTH - 100, -50.0f};
 	  lvl1.isDay = true;
     lvl1.exitZone = {50, (float)(SCREEN_HEIGHT/2.0f) - 65, 100, 50};
-	lvl1.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
+	  lvl1.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
     levels.push_back(lvl1);
 
     // LEVEL 2
@@ -483,10 +483,39 @@ void DrawGameplay(GameState &game) {
 
 
   // Draw Exit Zone
-  DrawRectangleRec(currentLvlData.exitZone, Fade(GREEN, 0.3f)); // Transparent green fill
-  DrawRectangleLinesEx(currentLvlData.exitZone, 2.0f, GREEN);   // Solid outline
-  DrawText("EXIT", (int)currentLvlData.exitZone.x + 5, (int)currentLvlData.exitZone.y - 20, 20, GREEN);
+  // DrawRectangleRec(currentLvlData.exitZone, Fade(GREEN, 0.3f)); // Transparent green fill
+  // DrawRectangleLinesEx(currentLvlData.exitZone, 2.0f, GREEN);   // Solid outline
+  // DrawText("EXIT", (int)currentLvlData.exitZone.x + 5, (int)currentLvlData.exitZone.y - 20, 20, GREEN);
+  // Draw Exit Zone
+  if (game.texExit.id != 0) {
+      Rectangle sourceRec = { 0.0f, 0.0f, (float)game.texExit.width, (float)game.texExit.height };
+      
+      // SCALE LOGIC: Make the drawing 2x bigger than the hitbox
+      float scale = 2.0f; 
+      float drawWidth = currentLvlData.exitZone.width * scale;
+      float drawHeight = currentLvlData.exitZone.height * scale;
 
+      // ADJUST THESE OFFSETS TO MOVE THE IMAGE
+      float xOffset = 0.0f;   // Positive = Right, Negative = Left
+      float yOffset = 50.0f;  // Positive = Down, Negative = Up
+
+      Rectangle drawRect = {
+          currentLvlData.exitZone.x - (drawWidth - currentLvlData.exitZone.width) / 2 + xOffset,
+          currentLvlData.exitZone.y - (drawHeight - currentLvlData.exitZone.height) + yOffset,
+          drawWidth,
+          drawHeight
+      };
+
+      // Draw the texture into the bigger drawRect
+      DrawTexturePro(game.texExit, sourceRec, drawRect, {0,0}, 0.0f, WHITE);
+      
+      
+  } else {
+      // Fallback
+      DrawRectangleRec(currentLvlData.exitZone, Fade(GREEN, 0.3f));
+      DrawRectangleLinesEx(currentLvlData.exitZone, 2.0f, GREEN);
+      DrawText("EXIT", (int)currentLvlData.exitZone.x + 5, (int)currentLvlData.exitZone.y - 20, 20, GREEN);
+  }
   // Clouds
   for (const auto &cloud : currentLvlData.clouds) {
     DrawRectangleRec(cloud.rect, Fade(SKYBLUE, 0.9f));
@@ -595,6 +624,14 @@ int main() {
   game.texSpider = LoadTexture("spider.png"); 
   game.texRoach = LoadTexture("roach.png");
   game.texGameOver2 = LoadTexture("gameOverScreen.png"); 
+    
+  // Try loading
+  game.texExit = LoadTexture("exit.png");
+
+  // ADD THIS DEBUG CHECK:
+  if (game.texExit.id == 0) {
+      std::cout << "ERROR: Could not load 'exit.png'. Is it in the resources folder?" << std::endl;
+  }
 
 
 	game.levels = InitLevels();
@@ -725,6 +762,9 @@ UnloadRenderTexture(game.lightLayer);
   UnloadTexture(game.player.texture);
   UnloadTexture(game.texSpider);
   UnloadTexture(game.texRoach);
+  //UnloadTexture(game.texGameOver);
+  //UnloadTexture(game.texGameOver2);
+  UnloadTexture(game.texExit);
 
 	UnloadMusicStream(game.music.first);
 	UnloadMusicStream(game.music.second);

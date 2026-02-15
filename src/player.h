@@ -16,7 +16,12 @@ typedef struct Player {
   bool toggle;
   float toggleCooldown;
   int healthPoints;
+
   Texture2D texture;
+  Rectangle frameRec;      // The current slice of the texture to draw
+  int currentFrame;        // 0, 1, 2, etc.
+  int framesCounter;       // Counts game frames to control speed
+  int framesSpeed;         // How fast it animates (e.g., 8 frames per second)
   bool isFacingRight;
 } Player;
 
