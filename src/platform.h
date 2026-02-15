@@ -10,7 +10,7 @@
 #define FLOWER_WIDTH 25
 #define FLOWER_HEIGHT 200
 
-typedef enum PlatformType { basic, mushroom, flower } PlatformType;
+typedef enum PlatformType { basic, mushroom, flower, invisible } PlatformType;
 
 typedef struct Platform {
   Rectangle position;

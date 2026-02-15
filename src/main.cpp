@@ -11,6 +11,8 @@
 #include <tuple>
 #include <vector>
 
+#define BLANK (Color){0, 0, 0, 0}
+
 // --- CONSTANTS & ENUMS ---
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 800;
@@ -75,13 +77,26 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 1
     Level lvl1;
-    lvl1.backgrounds = std::make_tuple(LoadTexture("level1_daybackground.jpg"), LoadTexture("level1_nightbackground.jpg"));
+
+    Image dayImg = LoadImage("level1_daybackground.png");
+    Image nightImg = LoadImage("level1_nightbackground.jpg");
+
+    ImageResize(&dayImg, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex = LoadTextureFromImage(dayImg);
+    Texture2D nightTex = LoadTextureFromImage(nightImg);
+
+    UnloadImage(dayImg);
+    UnloadImage(nightImg);
+
+    lvl1.backgrounds = std::make_tuple(dayTex, nightTex);
     lvl1.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl1.platforms = {
         {{400, 600, 100, 10}, basic},
         {{600, 500, 100, 10}, mushroom},
         {{800, 500, 100, 10}, flower},
-        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
+        {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible}};
     lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
     lvl1.clouds = {
         {{100, 250, 200, 40}, 150.0f, 50, 600, true},
@@ -93,6 +108,21 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 2
     Level lvl2;
+
+    Image dayImg2 = LoadImage("level2_daybackground.png");
+    Image nightImg2 = LoadImage("level2_nightbackground.png");
+
+    ImageResize(&dayImg2, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg2, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex2 = LoadTextureFromImage(dayImg2);
+    Texture2D nightTex2 = LoadTextureFromImage(nightImg2);
+
+    UnloadImage(dayImg2);
+    UnloadImage(nightImg2);
+
+    lvl2.backgrounds = std::make_tuple(dayTex2, nightTex2);
+
     lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
         {{SCREEN_WIDTH-250, (SCREEN_HEIGHT-FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
@@ -112,6 +142,21 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 3
     Level lvl3;
+
+    Image dayImg3 = LoadImage("level3_daybackground.png");
+    Image nightImg3 = LoadImage("level3_nightbackground.png");
+
+    ImageResize(&dayImg3, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg3, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex3 = LoadTextureFromImage(dayImg3);
+    Texture2D nightTex3 = LoadTextureFromImage(nightImg3);
+
+    UnloadImage(dayImg3);
+    UnloadImage(nightImg3);
+
+    lvl3.backgrounds = std::make_tuple(dayTex3, nightTex3);
+
     lvl3.spawnPoint = {100, 600};
     lvl3.platforms = {
         {{100, 650, 150, 10}, basic},
@@ -548,8 +593,11 @@ int main() {
 
 		EndDrawing();
 	}
-
-	UnloadRenderTexture(game.lightLayer);
-	CloseWindow();
+  for (auto &level : game.levels) {
+    UnloadTexture(std::get<0>(level.backgrounds));
+    UnloadTexture(std::get<1>(level.backgrounds));
+    }
+  UnloadRenderTexture(game.lightLayer);
+  CloseWindow();
 	return 0;
 }

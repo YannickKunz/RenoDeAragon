@@ -1,6 +1,8 @@
 #include "platform.h"
 #include <iostream>
 
+#define BLANK (Color){0, 0, 0, 0}
+
 extern bool playerToggle;
 
 bool isPlatformActive(Platform& platform) {
@@ -23,6 +25,9 @@ void drawPlatform(const Platform& platform) {
   } else if (platform.type == flower) {
     color = LIME;
 	draw = playerToggle;
+  } else if (platform.type == invisible) {
+    color = BLANK;
+	draw = false;
   } else {
     color = GRAY;
 	draw = true;
