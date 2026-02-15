@@ -172,15 +172,14 @@ std::vector<Level> InitLevels() {
 
     lvl3.spawnPoint = {100, 600};
     lvl3.platforms = {
-        {{100, 650, 150, 10}, basic},
-        {{400, 600, 100, 10}, basic},
-        {{600, 500, 100, 10}, basic},
-        {{800, 400, 100, 10}, basic},
-        {{1000, 300, 100, 10}, basic},
+        {{0, 400, 450, 20}, basic},
+        {{600, 600, FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
+        {{800, 450, 200, 20}, basic},
+        {{1000, 300, 200, 20}, basic},
         {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible},};
     lvl3.enemies = {{{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {100, 100}, false, 2}};
-    lvl3.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
-    lvl3.sunPosition = {200.0f, -50.0f};
+    lvl3.clouds = {{{100, -50, 150, 40}, 200.0f, 200, 900, true}, {{600, 50, 150, 40}, 200.0f, -100, 1000, false}};
+    lvl3.sunPosition = {SCREEN_WIDTH-50, -500.0f};
 	lvl3.isDay = true;
 	lvl3.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
     levels.push_back(lvl3);

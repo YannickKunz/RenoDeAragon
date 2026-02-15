@@ -7,7 +7,7 @@
 #define MUSHROOM_WIDTH 25
 #define MUSHROOM_HEIGHT 50
 
-#define FLOWER_WIDTH 25
+#define FLOWER_WIDTH 30
 #define FLOWER_HEIGHT 200
 
 typedef enum PlatformType { basic, mushroom, flower, invisible } PlatformType;

@@ -1,8 +1,6 @@
 #include "platform.h"
 #include <iostream>
 
-#define BLANK (Color){0, 0, 0, 0}
-
 extern bool playerToggle;
 
 bool isPlatformActive(Platform& platform) {
