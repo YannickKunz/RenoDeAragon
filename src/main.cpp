@@ -87,7 +87,8 @@ std::vector<Level> InitLevels() {
         {{100, 250, 200, 40}, 150.0f, 50, 600, true},
         {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
     lvl1.sunPosition = {500.0f, -50.0f};
-	lvl1.isDay = true;
+	  lvl1.isDay = true;
+    lvl1.exitZone = {SCREEN_WIDTH - 150, (float)(SCREEN_HEIGHT - 100), 100, 50};
     levels.push_back(lvl1);
 
     // LEVEL 2
