@@ -13,7 +13,7 @@ typedef struct Enemy {
   Vector2 size;
   bool patrolSide;
   int patrolPlatformIndex; // which platform this enemy patrols on
-  Texture2D enemyTexture;
+  // Texture2D enemyTexture;
   EnemyType type;
 } Enemy;
 

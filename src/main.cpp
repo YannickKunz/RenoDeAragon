@@ -135,17 +135,17 @@ std::vector<Level> InitLevels() {
 
     lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
-        {{SCREEN_WIDTH-250, (SCREEN_HEIGHT-FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
-        {{0, 250, 200, 30}, basic},
-        {{300, 350, 200, 30}, basic},
-        {{600, 450, 200, 30}, basic},
-        {{600, (float)(SCREEN_HEIGHT - 50), 100, 100}, basic},// special fake platform for mobe
-        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic},
+        {{SCREEN_WIDTH-250, (SCREEN_HEIGHT - FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
+        {{0, 250, 200, 50}, basic},
+        {{300, 350, 200, 50}, basic},
+        {{600, 450, 200, 50}, basic},
+        {{600, (float)(SCREEN_HEIGHT - 50), 10, 100}, invisible},// special fake platform for mobe
+        {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible},
 	};
 	int fake_platform_idx = 4;
 
-    lvl2.enemies = {{{lvl2.platforms[fake_platform_idx].position.x, lvl2.platforms[fake_platform_idx].position.y}, {20, 100}, true, fake_platform_idx}};
-    lvl2.sunPosition = {800.0f, -50.0f};
+    lvl2.enemies = {{{lvl2.platforms[fake_platform_idx].position.x, lvl2.platforms[fake_platform_idx].position.y}, {100, 100}, true, fake_platform_idx, roach}};
+    lvl2.sunPosition = {800.0f, -500.0f};
     lvl2.exitZone = {25, 200, 100, 50};
 	lvl2.isDay = false;
 	lvl2.musicPath = {"music/lvlupjam_lvl2.wav", "music/lvlupjam_lvl2_night.wav"};
@@ -175,8 +175,8 @@ std::vector<Level> InitLevels() {
         {{600, 500, 100, 10}, basic},
         {{800, 400, 100, 10}, basic},
         {{1000, 300, 100, 10}, basic},
-        {{0, (float)(SCREEN_HEIGHT + 200), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl3.enemies = {{{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {30, 30}, false, 2}};
+        {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible},};
+    lvl3.enemies = {{{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {100, 100}, false, 2}};
     lvl3.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
     lvl3.sunPosition = {200.0f, -50.0f};
 	lvl3.isDay = true;
