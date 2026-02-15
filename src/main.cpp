@@ -23,6 +23,7 @@ typedef enum GameScreen {
   STORY,
   GAMEPLAY,
   PAUSE,
+  GAME_OVER,
   ENDING,
   CREDIT
 } GameScreen;
@@ -58,6 +59,16 @@ struct GameState {
     
     // Player State
     Player player = {0};
+
+    Texture2D texSpider;
+    Texture2D texRoach;
+
+    // Platform Textures
+    Texture2D texBasic;
+    Texture2D texMushroom;
+    Texture2D texFlower;
+    Texture2D texGameOver;
+    Texture2D texGameOver2;
     
     // Level Data
     std::vector<Level> levels;
@@ -79,25 +90,49 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 1
     Level lvl1;
-    lvl1.backgrounds = std::make_tuple(LoadTexture("level1_daybackground.jpg"), LoadTexture("level1_nightbackground.jpg"));
-    lvl1.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
+
+    Image dayImg = LoadImage("level1_daybackground.png");
+    Image nightImg = LoadImage("level1_nightbackground.jpg");
+
+    ImageResize(&dayImg, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex = LoadTextureFromImage(dayImg);
+    Texture2D nightTex = LoadTextureFromImage(nightImg);
+
+    UnloadImage(dayImg);
+    UnloadImage(nightImg);
+
+    lvl1.backgrounds = std::make_tuple(dayTex, nightTex);
+    lvl1.spawnPoint = {SCREEN_WIDTH - 50, (float)(SCREEN_HEIGHT - 100)};
     lvl1.platforms = {
-        {{400, 600, 100, 10}, basic},
-        {{600, 500, 100, 10}, mushroom},
-        {{800, 500, 100, 10}, flower},
-        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
-    lvl1.clouds = {
-        {{100, 250, 200, 40}, 150.0f, 50, 600, true},
-        {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
-    lvl1.sunPosition = {500.0f, -50.0f};
+        {{SCREEN_WIDTH - 550, SCREEN_HEIGHT/2.0f, 550, 30}, basic},
+        {{0, SCREEN_HEIGHT/2.0f, 300, 30}, basic},
+        {{400, SCREEN_HEIGHT - 125, 100, 100}, mushroom},
+        {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible}};
+    lvl1.sunPosition = {SCREEN_WIDTH - 100, -50.0f};
 	  lvl1.isDay = true;
-    lvl1.exitZone = {SCREEN_WIDTH - 150, (float)(SCREEN_HEIGHT - 100), 100, 50};
+    lvl1.exitZone = {50, (float)(SCREEN_HEIGHT/2.0f) - 65, 100, 50};
 	lvl1.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
     levels.push_back(lvl1);
 
     // LEVEL 2
     Level lvl2;
+
+    Image dayImg2 = LoadImage("level2_daybackground.png");
+    Image nightImg2 = LoadImage("level2_nightbackground.png");
+
+    ImageResize(&dayImg2, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg2, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex2 = LoadTextureFromImage(dayImg2);
+    Texture2D nightTex2 = LoadTextureFromImage(nightImg2);
+
+    UnloadImage(dayImg2);
+    UnloadImage(nightImg2);
+
+    lvl2.backgrounds = std::make_tuple(dayTex2, nightTex2);
+
     lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
         {{SCREEN_WIDTH-250, (SCREEN_HEIGHT-FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
@@ -118,6 +153,21 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 3
     Level lvl3;
+
+    Image dayImg3 = LoadImage("level3_daybackground.png");
+    Image nightImg3 = LoadImage("level3_nightbackground.png");
+
+    ImageResize(&dayImg3, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImageResize(&nightImg3, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    Texture2D dayTex3 = LoadTextureFromImage(dayImg3);
+    Texture2D nightTex3 = LoadTextureFromImage(nightImg3);
+
+    UnloadImage(dayImg3);
+    UnloadImage(nightImg3);
+
+    lvl3.backgrounds = std::make_tuple(dayTex3, nightTex3);
+
     lvl3.spawnPoint = {100, 600};
     lvl3.platforms = {
         {{100, 650, 150, 10}, basic},
@@ -140,7 +190,7 @@ void ResetPlayer(GameState &game) {
   if (game.currentLevelIndex < (int)game.levels.size()) {
     game.player.position = game.levels[game.currentLevelIndex].spawnPoint;
     game.player.speed = 0;
-    game.player.healthPoints = 5;
+    game.player.healthPoints = 1000;
     game.player.toggleCooldown = 2.0f;
   }
 }
@@ -148,7 +198,7 @@ void ResetPlayer(GameState &game) {
 void selectPlayMusic(GameState& game) {
 	if (game.musicToggle != playerToggle) {
 		game.musicToggle = playerToggle;
-		if (playerToggle) {
+		if (!playerToggle) {
 			StopMusicStream(game.music.first);
 			PlayMusicStream(game.music.second);
 		} else {
@@ -208,7 +258,7 @@ void UpdateGameplay(GameState &game, float delta) {
   Level &currentLvlData = game.levels[game.currentLevelIndex];
 
   // Check Burning logic (1 HP per 60 frames)
-    if (game.isPlayerBurning) {
+    if (playerToggle && game.isPlayerBurning) {
         game.burnTimer++;
         // EMIT PARTICLE (Every 15 frames)
         if (game.burnTimer % 15 == 0) {
@@ -227,7 +277,7 @@ void UpdateGameplay(GameState &game, float delta) {
     // Check for specific death condition if needed, or rely on player update
     if (game.player.healthPoints <= 0) {
         // Handle death (e.g., reset level or game over)
-        ResetPlayer(game);
+        game.currentScreen = GAME_OVER;
     }
 
   // 1. Update Player
@@ -302,6 +352,15 @@ void UpdateGameplay(GameState &game, float delta) {
 
 // --- DRAWING FUNCTIONS ---
 void DrawLighting(GameState &game, Level &level) {
+  // If it is Night, do not draw light rays and do not burn player
+  if (!playerToggle) {
+      game.isPlayerBurning = false;
+      BeginTextureMode(game.lightLayer);
+      ClearBackground(BLANK);
+      EndTextureMode();
+      return;
+  }
+  
   // 3D Shadow Casting Logic
   Vector2 sunPos = level.sunPosition;
   BoundingBox playerBox3D = {
@@ -316,7 +375,7 @@ void DrawLighting(GameState &game, Level &level) {
   bool anyRayHitPlayer = false;
 
   // Raycast loop
-  for (int x = -200; x <= SCREEN_WIDTH + 200; x += 40) {
+  for (int x = -200; x <= SCREEN_WIDTH + 200; x += 10) {
     Vector2 targetPos = {(float)x, (float)SCREEN_HEIGHT};
     Vector3 sunOrigin3D = {sunPos.x, sunPos.y, 0};
     Vector3 rayDir = {targetPos.x - sunPos.x, targetPos.y - sunPos.y, 0};
@@ -371,7 +430,7 @@ void DrawLighting(GameState &game, Level &level) {
       endPos = {sunPos.x + rayDir.x * nearestDist,
                 sunPos.y + rayDir.y * nearestDist};
     }
-    DrawLineEx(sunPos, endPos, 40.0f, rayColor);
+    DrawLineEx(sunPos, endPos, 12.0f, rayColor);
     if (hitPlayer)
       DrawCircleV(endPos, 5, RED);
   }
@@ -399,7 +458,25 @@ void DrawGameplay(GameState &game) {
 
   // Platforms
   for (const auto& plat : currentLvlData.platforms) {
-		drawPlatform(plat);
+		// Pick the texture based on type
+      // Texture2D *t = &game.texBasic; // Default
+      // if (plat.type == mushroom) t = &game.texMushroom;
+      // if (plat.type == flower) t = &game.texFlower;
+
+      // Calculate source (full texture)
+      // Rectangle source = {0, 0, (float)t->width, (float)t->height};
+      
+      // Calculate destination (platform position)
+      // Rectangle dest = plat.position;
+
+      // Draw Texture
+      //DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
+      
+      // Optional: Keep hitbox for debug
+      // DrawRectangleLinesEx(dest, 2.0f, RED);
+      // Pass the textures here. 
+      // If you don't have one loaded yet, just pass "0" or a blank Texture2D
+      drawPlatform(plat, game.texMushroom, game.texFlower, game.texBasic);
   }
 
 
@@ -418,8 +495,8 @@ void DrawGameplay(GameState &game) {
 
 // Player (Primitive drawing, can be replaced with sprite logic)
   Vector2 playerPosVisual = {game.player.position.x - game.player.size.x / 2, game.player.position.y - game.player.size.y};
-  DrawRectangleV(playerPosVisual, game.player.size, BLUE);
-  DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
+  // DrawRectangleV(playerPosVisual, game.player.size, BLUE);
+  // DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
   // --- HP BAR ---
   float barWidth = 6.0f;
   float barHeight = 50.0f; 
@@ -453,7 +530,11 @@ void DrawGameplay(GameState &game) {
 	if (isEnemyActive()) {
 		for (Enemy &enemy : currentLvlData.enemies) {
 			int pi = enemy.patrolPlatformIndex;
-			updateEnemy(enemy, currentLvlData.platforms[pi].position, GetFrameTime());
+			  // 1. Select the correct texture
+        Texture2D currentTex = (enemy.type == spider) ? game.texSpider : game.texRoach;
+          
+        // 2. Call the function (Updates position AND Draw)
+        updateEnemy(enemy, currentLvlData.platforms[pi].position, GetFrameTime(), currentTex);
 		}
 	}
 
@@ -499,9 +580,23 @@ int main() {
 	SetExitKey(KEY_NULL);
 	SearchAndSetResourceDir("resources");
 
+  playerToggle = true;
+
 	GameState game;
+  game.player.texture = LoadTexture("my_player.png");
+  game.texGameOver = LoadTexture("game_over.png"); 
+  // LOAD PLATFORM TEXTURES (Make sure you have these files!)
+  //game.texBasic = LoadTexture("platform_basic.png");
+  game.texMushroom = LoadTexture("platform_mushroom.png");
+  game.texFlower = LoadTexture("platform_flower.png");
+
+  game.texSpider = LoadTexture("spider.png"); 
+  game.texRoach = LoadTexture("roach.png");   
+  game.texGameOver2 = LoadTexture("gameOverScreen.png"); 
+
+
 	game.levels = InitLevels();
-	game.player.size = {40, 80};
+	game.player.size = {100, 160};
 	ResetPlayer(game);
 
 	InitParticles();
@@ -513,7 +608,7 @@ int main() {
 	game.music.first = LoadMusicStream(game.levels[0].musicPath.first.c_str());
 	game.music.second = LoadMusicStream(game.levels[0].musicPath.second.c_str());
 	
-	playerToggle = false;
+	playerToggle = true;
 	game.musicToggle = !playerToggle;
 	selectPlayMusic(game);
 
@@ -545,6 +640,12 @@ int main() {
 				UpdateMenu(game, true);
 				if (IsKeyPressed(KEY_ESCAPE)) game.currentScreen = GAMEPLAY;
 				break;
+      case GAME_OVER:
+        if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_ENTER)) {
+            ResetPlayer(game);
+            game.currentScreen = GAMEPLAY;
+        }
+        break;
 			case ENDING:
 				if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) game.currentScreen = CREDIT;
 				break;
@@ -578,6 +679,24 @@ int main() {
 				DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.8f));
 				DrawMenu("PAUSED", "RESUME", "QUIT TO TITLE", game.menuOption);
 				break;
+      case GAME_OVER:
+      {
+        // Draw the image to fit the screen
+        DrawTexturePro(game.texGameOver, 
+            (Rectangle){0,0, (float)game.texGameOver.width, (float)game.texGameOver.height}, 
+            (Rectangle){0,0, SCREEN_WIDTH, SCREEN_HEIGHT}, 
+            (Vector2){0,0}, 0.0f, WHITE);
+        
+        DrawTexturePro(game.texGameOver2, 
+            (Rectangle){0,0, (float)game.texGameOver2.width, (float)game.texGameOver2.height}, 
+            (Rectangle){SCREEN_WIDTH/2 - 200, SCREEN_HEIGHT/4 - 100, 400, 200}, 
+            (Vector2){0,0}, 90.0f, WHITE);
+        
+        // Instructions
+        const char* text = "PRESS 'R' TO RESTART";
+        DrawText(text, SCREEN_WIDTH/2 - MeasureText(text, 30)/2, SCREEN_HEIGHT - 100, 30, WHITE);
+      }
+        break;
 			case ENDING:
 				DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLUE);
 				DrawText("ENDING SCREEN", SCREEN_WIDTH/2 - MeasureText("ENDING SCREEN", 40)/2, SCREEN_HEIGHT/4, 40, LIGHTGRAY);
@@ -593,8 +712,18 @@ int main() {
 
 		EndDrawing();
 	}
+  for (auto &level : game.levels) {
+    UnloadTexture(std::get<0>(level.backgrounds));
+    UnloadTexture(std::get<1>(level.backgrounds));
+    }
+  UnloadRenderTexture(game.lightLayer);
+  UnloadTexture(game.texMushroom);
+  UnloadTexture(game.texFlower);
+UnloadRenderTexture(game.lightLayer);
+  UnloadTexture(game.player.texture);
+  UnloadTexture(game.texSpider);
+  UnloadTexture(game.texRoach);
 
-	UnloadRenderTexture(game.lightLayer);
 	UnloadMusicStream(game.music.first);
 	UnloadMusicStream(game.music.second);
 	CloseWindow();

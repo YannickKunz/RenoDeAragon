@@ -10,14 +10,15 @@
 #define FLOWER_WIDTH 25
 #define FLOWER_HEIGHT 200
 
-typedef enum PlatformType { basic, mushroom, flower } PlatformType;
+typedef enum PlatformType { basic, mushroom, flower, invisible } PlatformType;
 
 typedef struct Platform {
   Rectangle position;
   PlatformType type;
+  Texture2D texture;
 } Platform;
 
-void drawPlatform(const Platform &platform);
+void drawPlatform(const Platform &platform, Texture2D mushroomTex, Texture2D flowerTex, Texture2D basicTex);
 
 bool isPlatformActive(Platform &platform);
 

@@ -13,8 +13,14 @@ bool playerToggle = false;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
-	if (IsKeyDown(KEY_A)) player.position.x -= MOVEMENT*delta;
-	if (IsKeyDown(KEY_D)) player.position.x += MOVEMENT*delta;
+	if (IsKeyDown(KEY_A)) { 
+		player.position.x -= MOVEMENT*delta; 
+		player.isFacingRight = false;
+	}
+	if (IsKeyDown(KEY_D)) { 
+		player.position.x += MOVEMENT*delta;
+		player.isFacingRight = true;
+	}
 	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
 		playerToggle = !playerToggle;
 		player.toggleCooldown = 0.0f;
@@ -122,14 +128,29 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
   }
 
 }
-
+// ...existing code...
 void drawPlayer(Player &player) {
-	Vector2 playerPosition = {player.position.x - player.size.x / 2,
-		player.position.y - player.size.y};
-	DrawRectangleV(playerPosition, player.size, BLUE);
+    // CHANGE: Use Rectangle instead of Vector2
+    // This defines where on the screen the player will be drawn
+    Rectangle destRect = {
+        player.position.x - player.size.x / 2,
+        player.position.y - player.size.y,
+        player.size.x,
+        player.size.y
+    };
 
-	DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
-			player.position.y - player.size.y,
-			player.size.x, player.size.y},
-			2.0f, BLACK);
+	float srcWidth = (float)player.texture.width;
+
+	if (!player.isFacingRight) {
+		srcWidth = -srcWidth; // Flip horizontally
+	}
+
+    // Define the part of the texture to draw (the whole image)
+    Rectangle sourceRect = { 0.0f, 0.0f, srcWidth, (float)player.texture.height };
+
+    // Draw the texture fitted into the destRect
+    DrawTexturePro(player.texture, sourceRect, destRect, (Vector2){0, 0}, 0.0f, WHITE);
+
+    // Optional: Draw the outline (for debugging)
+    //DrawRectangleLinesEx(destRect, 2.0f, BLACK);
 }
