@@ -15,6 +15,7 @@ typedef enum PlatformType { basic, mushroom, flower, invisible } PlatformType;
 typedef struct Platform {
   Rectangle position;
   PlatformType type;
+  Texture2D texture;
 } Platform;
 
 void drawPlatform(const Platform &platform);
