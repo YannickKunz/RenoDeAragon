@@ -135,7 +135,7 @@ std::vector<Level> InitLevels() {
 
     lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
-        {{SCREEN_WIDTH - 250, (SCREEN_HEIGHT - FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
+        {{SCREEN_WIDTH - 250, (SCREEN_HEIGHT - 150), 100, 100}, flower},
         {{0, 250, 200, 50}, basic},
         {{300, 350, 200, 50}, basic},
         {{600, 450, 200, 50}, basic},
@@ -172,16 +172,17 @@ std::vector<Level> InitLevels() {
 
     lvl3.spawnPoint = {100, 600};
     lvl3.platforms = {
-        {{0, 400, 450, 20}, basic},
-        {{600, 600, FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
-        {{800, 450, 200, 20}, basic},
-        {{1000, 300, 200, 20}, basic},
+        {{0, 400, 450, 50}, basic},
+        {{600, 600, 100, 100}, flower},
+        {{800, 450, 200, 50}, basic},
+        {{1000, 300, 200, 50}, basic},
         {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible},};
     lvl3.enemies = {{{lvl3.platforms[2].position.x + lvl3.platforms[2].position.width / 2, lvl3.platforms[2].position.y}, {100, 100}, false, 2}};
-    lvl3.clouds = {{{100, -50, 150, 40}, 200.0f, 200, 900, true}, {{600, 50, 150, 40}, 200.0f, -100, 1000, false}};
-    lvl3.sunPosition = {SCREEN_WIDTH-50, -500.0f};
+    lvl3.clouds = {{{100, -50, 150, 40}, 75.0f, 200, 800, true}, {{SCREEN_WIDTH, -50, 150, 40}, 75.0f, -100, 900, false}};
+    lvl3.sunPosition = {SCREEN_WIDTH-50, -1000.0f};
 	lvl3.isDay = true;
 	lvl3.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
+  lvl3.exitZone = {25, 200, 100, 50};
     levels.push_back(lvl3);
 
   return levels;
