@@ -69,6 +69,7 @@ struct GameState {
     Texture2D texMushroom;
     Texture2D texFlower;
     Texture2D texGameOver;
+    Texture2D texGameOver2;
     
     // Level Data
     std::vector<Level> levels;
@@ -107,11 +108,11 @@ std::vector<Level> InitLevels() {
         {{600, 500, 100, 10}, mushroom},
         {{800, 500, 100, 10}, flower},
         {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible}};
-    lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
-    lvl1.clouds = {
-        {{100, 250, 200, 40}, 150.0f, 50, 600, true},
-        {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
-    lvl1.sunPosition = {500.0f, -50.0f};
+    // lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
+    // lvl1.clouds = {
+    //    {{100, 250, 200, 40}, 150.0f, 50, 600, true},
+    //    {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
+    lvl1.sunPosition = {SCREEN_WIDTH - 100, -50.0f};
 	  lvl1.isDay = true;
     lvl1.exitZone = {SCREEN_WIDTH - 150, (float)(SCREEN_HEIGHT - 100), 100, 50};
     levels.push_back(lvl1);
@@ -188,7 +189,7 @@ void ResetPlayer(GameState &game) {
   if (game.currentLevelIndex < (int)game.levels.size()) {
     game.player.position = game.levels[game.currentLevelIndex].spawnPoint;
     game.player.speed = 0;
-    game.player.healthPoints = 5;
+    game.player.healthPoints = 1000;
     game.player.toggleCooldown = 2.0f;
   }
 }
@@ -422,22 +423,24 @@ void DrawGameplay(GameState &game) {
   // Platforms
   for (const auto& plat : currentLvlData.platforms) {
 		// Pick the texture based on type
-      Texture2D *t = &game.texBasic; // Default
-      if (plat.type == mushroom) t = &game.texMushroom;
-      if (plat.type == flower) t = &game.texFlower;
+      // Texture2D *t = &game.texBasic; // Default
+      // if (plat.type == mushroom) t = &game.texMushroom;
+      // if (plat.type == flower) t = &game.texFlower;
 
       // Calculate source (full texture)
-      Rectangle source = {0, 0, (float)t->width, (float)t->height};
+      // Rectangle source = {0, 0, (float)t->width, (float)t->height};
       
       // Calculate destination (platform position)
-      Rectangle dest = plat.position;
+      // Rectangle dest = plat.position;
 
       // Draw Texture
-      DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
+      //DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
       
       // Optional: Keep hitbox for debug
       // DrawRectangleLinesEx(dest, 2.0f, RED);
-  
+      // Pass the textures here. 
+      // If you don't have one loaded yet, just pass "0" or a blank Texture2D
+      drawPlatform(plat, game.texMushroom, game.texFlower, game.texBasic);
   }
 
 
@@ -551,6 +554,8 @@ int main() {
 
   game.texSpider = LoadTexture("spider.png"); 
   game.texRoach = LoadTexture("roach.png");   
+  game.texGameOver2 = LoadTexture("gameOverScreen.png"); 
+
 
 	game.levels = InitLevels();
 	game.player.size = {100, 160};
@@ -631,6 +636,11 @@ int main() {
             (Rectangle){0,0, (float)game.texGameOver.width, (float)game.texGameOver.height}, 
             (Rectangle){0,0, SCREEN_WIDTH, SCREEN_HEIGHT}, 
             (Vector2){0,0}, 0.0f, WHITE);
+        
+        DrawTexturePro(game.texGameOver2, 
+            (Rectangle){0,0, (float)game.texGameOver2.width, (float)game.texGameOver2.height}, 
+            (Rectangle){SCREEN_WIDTH/2 - 200, SCREEN_HEIGHT/4 - 100, 400, 200}, 
+            (Vector2){0,0}, 90.0f, WHITE);
         
         // Instructions
         const char* text = "PRESS 'R' TO RESTART";
