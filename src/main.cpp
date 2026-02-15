@@ -9,7 +9,7 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
-#include <string> // Added for to_string
+#include <string> 
 
 // --- CONSTANTS & ENUMS ---
 const int SCREEN_WIDTH = 1280;
@@ -49,6 +49,8 @@ struct GameState {
     bool exitGame = false;
     int menuOption = 0; // Shared for Title and Pause
     int framesCounter = 0;
+
+    int burnTimer = 0;
     
     // Player State
     Player player = {0};
@@ -115,6 +117,21 @@ std::vector<Level> InitLevels() {
     lvl3.sunPosition = {200.0f, -50.0f};
     levels.push_back(lvl3);
 
+
+    Level lvl4;
+    lvl4.spawnPoint = {100, 600};
+    lvl4.platforms = {
+        {{100, 650, 150, 20}, basic},
+        {{300, 650, 150, 20}, basic},
+        //{{600, 500, 100, 10}, basic},
+        //{{800, 400, 100, 10}, basic},
+        //{{1000, 300, 100, 10}, basic},
+        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
+    //lvl4.enemy = {{lvl4.platforms[2].position.x + lvl4.platforms[2].position.width / 2, lvl4.platforms[2].position.y}, {30, 30}, false, 3};
+    //lvl4.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
+    lvl4.sunPosition = {256.0f, -55.5f};
+    levels.push_back(lvl4);
+
     return levels;
 }
 
@@ -159,6 +176,23 @@ void UpdateGameplay(GameState& game, float delta) {
 
     // Prepare Level Data
     Level& currentLvlData = game.levels[game.currentLevelIndex];
+
+    // Check Burning logic (1 HP per 60 frames)
+    if (game.isPlayerBurning) {
+        game.burnTimer++;
+        if (game.burnTimer >= 60) {
+            game.player.healthPoints -= 1;
+            game.burnTimer = 0;
+            std::cout << "Player burned! HP: " << game.player.healthPoints << std::endl;
+        }
+    } else {
+        //game.burnTimer = 0; // Optional: Reset timer if they find shade
+    }
+    // Check for specific death condition if needed, or rely on player update
+    if (game.player.healthPoints <= 0) {
+        // Handle death (e.g., reset level or game over)
+        ResetPlayer(game);
+    }
 
     // 1. Update Player
     updatePlayer(game.player, currentLvlData.platforms.data(), (int)currentLvlData.platforms.size(), currentLvlData.enemy, delta, currentLvlData.spawnPoint);
@@ -306,6 +340,31 @@ void DrawGameplay(GameState& game) {
     Vector2 playerPosVisual = {game.player.position.x - game.player.size.x / 2, game.player.position.y - game.player.size.y};
     DrawRectangleV(playerPosVisual, game.player.size, BLUE);
     DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
+
+    // --- HP BAR ---
+    float barWidth = 6.0f;
+    float barHeight = 50.0f; 
+    float barX = playerPosVisual.x + game.player.size.x + 6.0f; // Position to the right of player
+    float barY = playerPosVisual.y + (game.player.size.y - barHeight) / 2.0f; // Center vertically relative to player
+
+    // Draw Background
+    DrawRectangle(barX, barY, barWidth, barHeight, Fade(BLACK, 0.5f));
+    DrawRectangleLines(barX, barY, barWidth, barHeight, BLACK);
+
+    // Draw Health Fill
+    float maxHP = 5.0f;
+    float hpPct = (float)game.player.healthPoints / maxHP;
+    if (hpPct < 0.0f) hpPct = 0.0f;
+
+    float fillHeight = barHeight * hpPct;
+    float fillY = barY + (barHeight - fillHeight); // Fill from bottom up
+
+    Color barColor = GREEN;
+    if (game.player.healthPoints <= 2) barColor = RED;
+    else if (game.player.healthPoints <= 4) barColor = ORANGE;
+
+    DrawRectangle(barX, fillY, barWidth, fillHeight, barColor);
+    // --------------
 
     // Light System
     DrawLighting(game, currentLvlData);

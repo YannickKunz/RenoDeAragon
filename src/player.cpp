@@ -1,7 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include "platform.cpp"
-#include "enemy.cpp"
+#include "enemy.h"
 
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800
