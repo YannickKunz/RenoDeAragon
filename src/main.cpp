@@ -57,6 +57,11 @@ struct GameState {
     
     // Player State
     Player player = {0};
+
+    // Platform Textures
+    Texture2D texBasic;
+    Texture2D texMushroom;
+    Texture2D texFlower;
     
     // Level Data
     std::vector<Level> levels;
@@ -79,8 +84,8 @@ std::vector<Level> InitLevels() {
     lvl1.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl1.platforms = {
         {{400, 600, 100, 10}, basic},
-        {{600, 500, 100, 10}, mushroom},
-        {{800, 500, 100, 10}, flower},
+        {{600, 500, 100, 100}, mushroom},
+        {{800, 500, 100, 100}, flower},
         {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
     lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
     lvl1.clouds = {
@@ -365,7 +370,23 @@ void DrawGameplay(GameState &game) {
 
   // Platforms
   for (const auto& plat : currentLvlData.platforms) {
-		drawPlatform(plat);
+		// Pick the texture based on type
+      Texture2D *t = &game.texBasic; // Default
+      if (plat.type == mushroom) t = &game.texMushroom;
+      if (plat.type == flower) t = &game.texFlower;
+
+      // Calculate source (full texture)
+      Rectangle source = {0, 0, (float)t->width, (float)t->height};
+      
+      // Calculate destination (platform position)
+      Rectangle dest = plat.position;
+
+      // Draw Texture
+      DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
+      
+      // Optional: Keep hitbox for debug
+      // DrawRectangleLinesEx(dest, 2.0f, RED);
+  
   }
 
 
@@ -467,12 +488,12 @@ int main() {
 
 	GameState game;
   game.player.texture = LoadTexture("my_player.png");
-    // DEBUG CHECK: If the terminal says width is 0, the file was not found!
-  if (game.player.texture.id == 0) {
-      std::cout << "ERROR: Player texture failed to load! Check file path." << std::endl;
-  } 
+  // LOAD PLATFORM TEXTURES (Make sure you have these files!)
+  //game.texBasic = LoadTexture("platform_basic.png");
+  game.texMushroom = LoadTexture("platform_mushroom.png");
+  game.texFlower = LoadTexture("platform_flower.png");
 	game.levels = InitLevels();
-	game.player.size = {80, 160};
+	game.player.size = {100, 160};
 	ResetPlayer(game);
 
 	InitParticles();
@@ -552,7 +573,8 @@ int main() {
 
 		EndDrawing();
 	}
-
+  UnloadTexture(game.texMushroom);
+  UnloadTexture(game.texFlower);
 	UnloadRenderTexture(game.lightLayer);
   UnloadTexture(game.player.texture);
 	CloseWindow();
