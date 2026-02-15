@@ -40,6 +40,7 @@ struct Level {
     std::vector<Cloud> clouds;
     Vector2 sunPosition;
     std::tuple<Texture2D, Texture2D> backgrounds; 
+    Rectangle exitZone;
 };
 
 // --- GLOBAL STATE (Wrapped in a struct for cleanliness) ---
@@ -121,15 +122,16 @@ std::vector<Level> InitLevels() {
     Level lvl4;
     lvl4.spawnPoint = {100, 600};
     lvl4.platforms = {
-        {{100, 650, 150, 20}, basic},
+        {{100, 650, 1050, 20}, basic},
         {{300, 650, 150, 20}, basic},
-        //{{600, 500, 100, 10}, basic},
-        //{{800, 400, 100, 10}, basic},
-        //{{1000, 300, 100, 10}, basic},
+        {{600, 600, 100, 10}, basic},
+        {{800, 400, 100, 10}, basic},
+        {{1000, 300, 100, 10}, basic},
         {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
     //lvl4.enemy = {{lvl4.platforms[2].position.x + lvl4.platforms[2].position.width / 2, lvl4.platforms[2].position.y}, {30, 30}, false, 3};
-    //lvl4.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
+    lvl4.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
     lvl4.sunPosition = {256.0f, -55.5f};
+    lvl4.exitZone = {1000, 600, 200, 200};
     levels.push_back(lvl4);
 
     return levels;
@@ -238,6 +240,18 @@ void UpdateGameplay(GameState& game, float delta) {
         if (game.currentLevelIndex >= (int)game.levels.size()) {
             game.currentScreen = ENDING;
             game.currentLevelIndex = 0; // Reset for next time
+        } else {
+            ResetPlayer(game);
+        }
+    }
+    Rectangle playerRect = {game.player.position.x - game.player.size.x/2, game.player.position.y - game.player.size.y, game.player.size.x, game.player.size.y};
+    
+    // Check collision against the level's exit zone
+    if (CheckCollisionRecs(playerRect, currentLvlData.exitZone)) {
+        game.currentLevelIndex++;
+        if (game.currentLevelIndex >= (int)game.levels.size()) {
+            game.currentScreen = ENDING;
+            game.currentLevelIndex = 0; 
         } else {
             ResetPlayer(game);
         }
