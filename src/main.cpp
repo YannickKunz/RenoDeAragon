@@ -42,6 +42,7 @@ struct Level {
   std::vector<Cloud> clouds;
   Vector2 sunPosition;
   std::tuple<Texture2D, Texture2D> backgrounds;
+  std::pair<std::string, std::string> musicPath;
 	bool isDay;
   Rectangle exitZone;
 };
@@ -66,10 +67,13 @@ struct GameState {
     CircularBuffer particleSystem;
     RenderTexture2D lightLayer;
     bool isPlayerBurning = false;
+
+	std::pair<Music, Music> music;
+	bool musicToggle;
 };
 
 // --- HELPER FUNCTIONS FOR INITIALIZATION ---
-
+//
 std::vector<Level> InitLevels() {
   std::vector<Level> levels;
 
@@ -89,6 +93,7 @@ std::vector<Level> InitLevels() {
     lvl1.sunPosition = {500.0f, -50.0f};
 	  lvl1.isDay = true;
     lvl1.exitZone = {SCREEN_WIDTH - 150, (float)(SCREEN_HEIGHT - 100), 100, 50};
+	lvl1.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
     levels.push_back(lvl1);
 
     // LEVEL 2
@@ -108,6 +113,7 @@ std::vector<Level> InitLevels() {
     lvl2.sunPosition = {800.0f, -50.0f};
     lvl2.exitZone = {25, 200, 100, 50};
 	lvl2.isDay = false;
+	lvl2.musicPath = {"music/lvlupjam_lvl2.wav", "music/lvlupjam_lvl2_night.wav"};
     levels.push_back(lvl2);
 
     // LEVEL 3
@@ -124,6 +130,7 @@ std::vector<Level> InitLevels() {
     lvl3.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
     lvl3.sunPosition = {200.0f, -50.0f};
 	lvl3.isDay = true;
+	lvl3.musicPath = {"music/lvlupjam_lvl1.wav", "music/lvlupjam_lvl1_night.wav"};
     levels.push_back(lvl3);
 
   return levels;
@@ -138,7 +145,29 @@ void ResetPlayer(GameState &game) {
   }
 }
 
+void selectPlayMusic(GameState& game) {
+	if (game.musicToggle != playerToggle) {
+		game.musicToggle = playerToggle;
+		if (playerToggle) {
+			StopMusicStream(game.music.first);
+			PlayMusicStream(game.music.second);
+		} else {
+			StopMusicStream(game.music.second);
+			PlayMusicStream(game.music.first);
+		}
+	}
+}
+
 // --- LOGIC UPDATES ---
+void changeMusicStreams(GameState &game) {
+	StopMusicStream(game.music.first);
+	StopMusicStream(game.music.second);
+
+	Level& level = game.levels[game.currentLevelIndex];
+	game.music.first = LoadMusicStream(level.musicPath.first.c_str());
+	game.music.second = LoadMusicStream(level.musicPath.second.c_str());
+	game.musicToggle = !playerToggle;
+}
 
 void UpdateMenu(GameState &game, bool isPauseMenu) {
   if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
@@ -241,9 +270,9 @@ void UpdateGameplay(GameState &game, float delta) {
 
     // 4. Level Transition Test
 	// TODO: add a winning condition instead of Key press
+	int currentLevelIdx = game.currentLevelIndex;
     if (IsKeyPressed(KEY_ENTER)) {
         game.currentLevelIndex++;
-		playerToggle = game.levels[game.currentLevelIndex].isDay;
 
         if (game.currentLevelIndex >= (int)game.levels.size()) {
             game.currentScreen = ENDING;
@@ -264,10 +293,14 @@ void UpdateGameplay(GameState &game, float delta) {
             ResetPlayer(game);
         }
     }
+
+	if (currentLevelIdx != game.currentLevelIndex) {
+		playerToggle = game.levels[game.currentLevelIndex].isDay;
+		changeMusicStreams(game);
+	}
 }
 
 // --- DRAWING FUNCTIONS ---
-
 void DrawLighting(GameState &game, Level &level) {
   // 3D Shadow Casting Logic
   Vector2 sunPos = level.sunPosition;
@@ -476,10 +509,21 @@ int main() {
 	InitStarDonut(&game.donutState, SCREEN_WIDTH, SCREEN_HEIGHT);
 	game.lightLayer = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+	InitAudioDevice();
+	game.music.first = LoadMusicStream(game.levels[0].musicPath.first.c_str());
+	game.music.second = LoadMusicStream(game.levels[0].musicPath.second.c_str());
+	
+	playerToggle = false;
+	game.musicToggle = !playerToggle;
+	selectPlayMusic(game);
+
 	while (!WindowShouldClose() && !game.exitGame) {
 		float delta = GetFrameTime();
 
 		// --- UPDATE ---
+		UpdateMusicStream(game.music.first);
+		UpdateMusicStream(game.music.second);
+
 		switch (game.currentScreen) {
 			case LOGO:
 				game.framesCounter++;
@@ -510,7 +554,8 @@ int main() {
 			default: break;
 		}
 
-		// --- DRAW ---
+		selectPlayMusic(game);
+				// --- DRAW ---
 		BeginDrawing();
 		ClearBackground(BLACK);
 
@@ -550,6 +595,8 @@ int main() {
 	}
 
 	UnloadRenderTexture(game.lightLayer);
+	UnloadMusicStream(game.music.first);
+	UnloadMusicStream(game.music.second);
 	CloseWindow();
 	return 0;
 }
