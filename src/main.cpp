@@ -339,19 +339,8 @@ void UpdateGameplay(GameState &game, float delta) {
   }
 
   // 4. Level Transition Test
-  // TODO: add a winning condition instead of Key press
   int currentLevelIdx = game.currentLevelIndex;
-  if (IsKeyPressed(KEY_ENTER)) {
-    game.currentLevelIndex++;
-
-    if (game.currentLevelIndex >= (int)game.levels.size()) {
-      game.currentScreen = ENDING;
-      game.currentLevelIndex = 0; // Reset for next time
-    } else {
-      ResetPlayer(game);
-    }
-  }
-
+  
   Rectangle playerRect = {game.player.position.x - game.player.size.x / 2,
                           game.player.position.y - game.player.size.y,
                           game.player.size.x, game.player.size.y};

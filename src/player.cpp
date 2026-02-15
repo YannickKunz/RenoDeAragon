@@ -1,7 +1,4 @@
 #include "player.h"
-#include <vector>
-#include <iostream>
-#include "platform.h"
 
 #define TOGGLE_DELAY_SEC 2.0f
 #define G 800

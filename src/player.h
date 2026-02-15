@@ -6,6 +6,7 @@
 #include "raylib.h"
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 
 typedef struct Player {
