@@ -234,7 +234,7 @@ void UpdateGameplay(GameState &game, float delta) {
   Level &currentLvlData = game.levels[game.currentLevelIndex];
 
   // Check Burning logic (1 HP per 60 frames)
-    if (game.isPlayerBurning) {
+    if (playerToggle && game.isPlayerBurning) {
         game.burnTimer++;
         // EMIT PARTICLE (Every 15 frames)
         if (game.burnTimer % 15 == 0) {
@@ -324,6 +324,15 @@ void UpdateGameplay(GameState &game, float delta) {
 // --- DRAWING FUNCTIONS ---
 
 void DrawLighting(GameState &game, Level &level) {
+  // If it is Night, do not draw light rays and do not burn player
+  if (!playerToggle) {
+      game.isPlayerBurning = false;
+      BeginTextureMode(game.lightLayer);
+      ClearBackground(BLANK);
+      EndTextureMode();
+      return;
+  }
+  
   // 3D Shadow Casting Logic
   Vector2 sunPos = level.sunPosition;
   BoundingBox playerBox3D = {
@@ -338,7 +347,7 @@ void DrawLighting(GameState &game, Level &level) {
   bool anyRayHitPlayer = false;
 
   // Raycast loop
-  for (int x = -200; x <= SCREEN_WIDTH + 200; x += 40) {
+  for (int x = -200; x <= SCREEN_WIDTH + 200; x += 10) {
     Vector2 targetPos = {(float)x, (float)SCREEN_HEIGHT};
     Vector3 sunOrigin3D = {sunPos.x, sunPos.y, 0};
     Vector3 rayDir = {targetPos.x - sunPos.x, targetPos.y - sunPos.y, 0};
@@ -393,7 +402,7 @@ void DrawLighting(GameState &game, Level &level) {
       endPos = {sunPos.x + rayDir.x * nearestDist,
                 sunPos.y + rayDir.y * nearestDist};
     }
-    DrawLineEx(sunPos, endPos, 40.0f, rayColor);
+    DrawLineEx(sunPos, endPos, 12.0f, rayColor);
     if (hitPlayer)
       DrawCircleV(endPos, 5, RED);
   }
