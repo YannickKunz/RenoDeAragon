@@ -13,22 +13,61 @@ bool playerToggle = false;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint) {
 	player.toggleCooldown += delta; // could this overflow?
+
+	bool isMoving = false;
 	if (IsKeyDown(KEY_A)) { 
 		player.position.x -= MOVEMENT*delta; 
 		player.isFacingRight = false;
+		isMoving = true;
 	}
 	if (IsKeyDown(KEY_D)) { 
 		player.position.x += MOVEMENT*delta;
 		player.isFacingRight = true;
+		isMoving = true;
 	}
 	if (IsKeyPressed(KEY_F) && (player.toggleCooldown >= TOGGLE_DELAY_SEC)) {
 		playerToggle = !playerToggle;
 		player.toggleCooldown = 0.0f;
-	}
+		player.frameRec = { 0.0f, 0.0f, (float)player.texture.width / 6, (float)player.texture.height };
+    }
 	if (IsKeyDown(KEY_SPACE) && player.canJump) {
 		player.speed -= JUMP_SPEED;
 		player.canJump = false;
 	}
+	// --- ANIMATION INITIALIZATION (SAFETY CHECK) ---
+    // If variables are 0, we can't see the player. Initialize them here.
+    if (player.framesSpeed == 0) player.framesSpeed = 8;
+    if (player.frameRec.width == 0 && player.texture.id > 0) {
+        player.frameRec = { 0.0f, 0.0f, (float)player.texture.width / 6, (float)player.texture.height };
+    }
+
+	// ANIMATION LOGIC
+	// ANIMATION LOGIC (Only runs if moving)
+    if (isMoving) {
+        player.framesCounter++;
+
+        // Switch frames every (60 / framesSpeed) calls
+        if (player.framesCounter >= (60 / player.framesSpeed)) {
+            player.framesCounter = 0;
+            player.currentFrame++;
+
+            // Reset if we exceed the number of frames in the sheet (e.g., 6)
+            if (player.currentFrame > 5) player.currentFrame = 0;
+
+            // Move the rectangle window to the next frame
+            player.frameRec.x = (float)player.currentFrame * (float)player.texture.width / 6;
+        }
+    } else {
+        // Reset to IDLE frame (0) when standing still
+        player.framesCounter = 0;
+        player.currentFrame = 0;
+        player.frameRec.x = 0;
+    }
+    
+    // FLIP LOGIC
+    // Use isFacingRight instead of checking keys again
+    if (!player.isFacingRight) player.frameRec.width = -fabs(player.frameRec.width);
+    else player.frameRec.width = fabs(player.frameRec.width);
 
 	// Check horizontal collisions (player sides vs platform sides)
 	for (int i = 0; i < platforms.size(); i++) {
@@ -128,28 +167,47 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
   }
 
 }
-// ...existing code...
 void drawPlayer(Player &player) {
-    // CHANGE: Use Rectangle instead of Vector2
-    // This defines where on the screen the player will be drawn
+    // Calculate visual dimensions based on the sprite frame
+    // We must use absolute values (fabs) because frameRec.width might be negative for flipping
+    float drawWidth = fabs(player.frameRec.width);
+    float drawHeight = player.frameRec.height;
+
+    float verticalOffset = 100.0f; // Increase this to move texture lower
+
     Rectangle destRect = {
-        player.position.x - player.size.x / 2,
-        player.position.y - player.size.y,
-        player.size.x,
-        player.size.y
+        player.position.x - drawWidth / 2.0f, 
+        player.position.y - drawHeight + verticalOffset, 
+        drawWidth,
+        drawHeight 
     };
 
-	float srcWidth = (float)player.texture.width;
+    // Draw the specific frame from the sprite sheet
+    DrawTexturePro(player.texture, player.frameRec, destRect, {0,0}, 0.0f, WHITE);
+    
+    // Debug: Red box for actual collision hitbox
+    //DrawRectangleLines(player.position.x - player.size.x/2, player.position.y - player.size.y, player.size.x, player.size.y, RED);
 
-	if (!player.isFacingRight) {
-		srcWidth = -srcWidth; // Flip horizontally
-	}
+    // CHANGE: Use Rectangle instead of Vector2
+    // This defines where on the screen the player will be drawn
+    // Rectangle destRect = {
+    //     player.position.x - player.size.x / 2,
+    //     player.position.y - player.size.y,
+    //     player.size.x,
+    //     player.size.y
+    // };
 
-    // Define the part of the texture to draw (the whole image)
-    Rectangle sourceRect = { 0.0f, 0.0f, srcWidth, (float)player.texture.height };
+	// float srcWidth = (float)player.texture.width;
 
-    // Draw the texture fitted into the destRect
-    DrawTexturePro(player.texture, sourceRect, destRect, (Vector2){0, 0}, 0.0f, WHITE);
+	// if (!player.isFacingRight) {
+	// 	srcWidth = -srcWidth; // Flip horizontally
+	// }
+
+    // // Define the part of the texture to draw (the whole image)
+    // Rectangle sourceRect = { 0.0f, 0.0f, srcWidth, (float)player.texture.height };
+
+    // // Draw the texture fitted into the destRect
+    // DrawTexturePro(player.texture, sourceRect, destRect, (Vector2){0, 0}, 0.0f, WHITE);
 
     // Optional: Draw the outline (for debugging)
     //DrawRectangleLinesEx(destRect, 2.0f, BLACK);
