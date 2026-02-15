@@ -12,6 +12,9 @@ typedef struct Enemy {
   int patrolPlatformIndex; // which platform this enemy patrols on
 } Enemy;
 
+
 void updateEnemy(Enemy &enemy, Rectangle platform, const float delta);
+
+bool isEnemyActive();
 
 #endif

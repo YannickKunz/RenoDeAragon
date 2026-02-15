@@ -2,6 +2,7 @@
 #define PLATFORM_H
 
 #include "raylib.h"
+#include <iostream>
 
 #define MUSHROOM_WIDTH 25
 #define MUSHROOM_HEIGHT 50
@@ -16,6 +17,8 @@ typedef struct Platform {
   PlatformType type;
 } Platform;
 
-void drawPlatform(Platform &platform);
+void drawPlatform(const Platform &platform);
+
+bool isPlatformActive(Platform &platform);
 
 #endif

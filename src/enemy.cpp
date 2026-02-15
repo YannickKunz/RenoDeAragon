@@ -1,7 +1,14 @@
 #include "enemy.h"
 #include <iostream>
 
-// TODO: remove 1 HP on every hit
+#define ENEMY_SPEED 80.0f
+
+extern bool playerToggle;
+
+bool isEnemyActive() {
+	return !playerToggle;
+}
+
 void updateEnemy(Enemy &enemy, Rectangle platform, const float delta) {
   if ((!enemy.patrolSide && enemy.position.x <= platform.x) ||
       (enemy.patrolSide && enemy.position.x >= platform.x + platform.width)) {

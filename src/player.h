@@ -4,6 +4,9 @@
 #include "enemy.h"
 #include "platform.h"
 #include "raylib.h"
+#include <iostream>
+#include <vector>
+
 
 typedef struct Player {
   Vector2 position;
@@ -15,7 +18,8 @@ typedef struct Player {
   int healthPoints;
 } Player;
 
-void updatePlayer(Player &player, Platform *platforms, int platformsLength,
-                  Enemy &enemy, const float delta, Vector2 spawnPoint);
+void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint);
+
+void drawPlayer(Player &player);
 
 #endif
