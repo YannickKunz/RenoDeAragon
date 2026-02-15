@@ -93,19 +93,20 @@ std::vector<Level> InitLevels() {
 
     // LEVEL 2
     Level lvl2;
-    lvl2.spawnPoint = {50, 200};
+    lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
-        {{50, 250, 100, 10}, basic},
-        {{300, 550, 100, 10}, basic},
-        {{500, 450, 100, 10}, basic},
-        {{700, 350, 100, 10}, basic},
-        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl2.enemies = {{{lvl2.platforms[1].position.x + lvl2.platforms[1].position.width / 2, lvl2.platforms[1].position.y}, {30, 30}, false, 1}};
-    lvl2.clouds = {
-        {{200, 150, 180, 40}, 120.0f, 100, 500, true},
-        {{800, 300, 220, 40}, 90.0f, 600, 1000, false},
-        {{400, 100, 150, 40}, 180.0f, 300, 800, true}};
+        {{SCREEN_WIDTH-250, (SCREEN_HEIGHT-FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
+        {{0, 250, 200, 30}, basic},
+        {{300, 350, 200, 30}, basic},
+        {{600, 450, 200, 30}, basic},
+        {{600, (float)(SCREEN_HEIGHT - 50), 100, 100}, basic},// special fake platform for mobe
+        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic},
+	};
+	int fake_platform_idx = 4;
+
+    lvl2.enemies = {{{lvl2.platforms[fake_platform_idx].position.x, lvl2.platforms[fake_platform_idx].position.y}, {20, 100}, true, fake_platform_idx}};
     lvl2.sunPosition = {800.0f, -50.0f};
+    lvl2.exitZone = {25, 200, 100, 50};
 	lvl2.isDay = false;
     levels.push_back(lvl2);
 
