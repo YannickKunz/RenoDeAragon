@@ -135,20 +135,22 @@ std::vector<Level> InitLevels() {
 
     lvl2.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl2.platforms = {
-        {{SCREEN_WIDTH-250, (SCREEN_HEIGHT - FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
+        {{SCREEN_WIDTH - 250, (SCREEN_HEIGHT - FLOWER_HEIGHT), FLOWER_WIDTH, FLOWER_HEIGHT}, flower},
         {{0, 250, 200, 50}, basic},
         {{300, 350, 200, 50}, basic},
         {{600, 450, 200, 50}, basic},
-        {{600, (float)(SCREEN_HEIGHT - 50), 10, 100}, invisible},// special fake platform for mobe
+        {{600, (float)(SCREEN_HEIGHT - 50), 10, 100}, invisible}, // special fake platform for mob
+        {{50, -200, 375, 50}, basic},
+        {{SCREEN_WIDTH - SCREEN_WIDTH / 3, -200, 375, 50}, basic},
         {{0, (float)(SCREEN_HEIGHT - 70), (float)SCREEN_WIDTH, 50}, invisible},
 	};
 	int fake_platform_idx = 4;
 
     lvl2.enemies = {{{lvl2.platforms[fake_platform_idx].position.x, lvl2.platforms[fake_platform_idx].position.y}, {100, 100}, true, fake_platform_idx, roach}};
-    lvl2.sunPosition = {800.0f, -500.0f};
+    lvl2.sunPosition = {800.0f, -1200.0f};
     lvl2.exitZone = {25, 200, 100, 50};
-	lvl2.isDay = false;
-	lvl2.musicPath = {"music/lvlupjam_lvl2.wav", "music/lvlupjam_lvl2_night.wav"};
+	  lvl2.isDay = false;
+	  lvl2.musicPath = {"music/lvlupjam_lvl2.wav", "music/lvlupjam_lvl2_night.wav"};
     levels.push_back(lvl2);
 
     // LEVEL 3
@@ -591,7 +593,7 @@ int main() {
   game.texFlower = LoadTexture("platform_flower.png");
 
   game.texSpider = LoadTexture("spider.png"); 
-  game.texRoach = LoadTexture("roach.png");   
+  game.texRoach = LoadTexture("roach.png");
   game.texGameOver2 = LoadTexture("gameOverScreen.png"); 
 
 
