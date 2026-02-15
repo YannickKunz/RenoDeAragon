@@ -190,10 +190,8 @@ void UpdateGameplay(GameState& game, float delta) {
         game.menuOption = 0;
         return;
     }
-
     // Prepare Level Data
     Level& currentLvlData = game.levels[game.currentLevelIndex];
-
     // Check Burning logic (1 HP per 60 frames)
     if (game.isPlayerBurning) {
         game.burnTimer++;
@@ -266,7 +264,6 @@ void UpdateGameplay(GameState& game, float delta) {
         }
     }
     Rectangle playerRect = {game.player.position.x - game.player.size.x/2, game.player.position.y - game.player.size.y, game.player.size.x, game.player.size.y};
-    
     // Check collision against the level's exit zone
     if (CheckCollisionRecs(playerRect, currentLvlData.exitZone)) {
         game.currentLevelIndex++;
@@ -364,6 +361,10 @@ void DrawGameplay(GameState& game) {
     for (const auto& plat : currentLvlData.platforms) {
         DrawRectangleRec(plat.position, GRAY);
     }
+    // Draw Exit Zone
+    DrawRectangleRec(currentLvlData.exitZone, Fade(GREEN, 0.3f)); // Transparent green fill
+    DrawRectangleLinesEx(currentLvlData.exitZone, 2.0f, GREEN);   // Solid outline
+    DrawText("EXIT", (int)currentLvlData.exitZone.x + 5, (int)currentLvlData.exitZone.y - 20, 20, GREEN);
 
     // Clouds
     for (const auto& cloud : currentLvlData.clouds) {
@@ -417,14 +418,14 @@ void DrawGameplay(GameState& game) {
     }
     // Particles
     UpdateParticles(&game.particleSystem);
-    if (game.isPlayerBurning) {
-        Vector2 center = {game.player.position.x, game.player.position.y - game.player.size.y / 2};
-        //EmitParticle(&game.particleSystem, center, FIRE);
-        //EmitParticle(&game.particleSystem, center, FIRE);
-        DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
-    } else {
-        DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
-    }
+    // if (game.isPlayerBurning) {
+    //     Vector2 center = {game.player.position.x, game.player.position.y - game.player.size.y / 2};
+    //     //EmitParticle(&game.particleSystem, center, FIRE);
+    //     //EmitParticle(&game.particleSystem, center, FIRE);
+    //     DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
+    // } else {
+    //     DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
+    // }
     DrawParticles(&game.particleSystem);
 
     // Debug
