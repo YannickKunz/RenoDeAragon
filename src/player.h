@@ -16,6 +16,7 @@ typedef struct Player {
   bool toggle;
   float toggleCooldown;
   int healthPoints;
+  Texture2D texture;
 } Player;
 
 void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint);

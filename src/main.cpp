@@ -23,6 +23,7 @@ typedef enum GameScreen {
   STORY,
   GAMEPLAY,
   PAUSE,
+  GAME_OVER,
   ENDING,
   CREDIT
 } GameScreen;
@@ -57,6 +58,15 @@ struct GameState {
     
     // Player State
     Player player = {0};
+
+    Texture2D texSpider;
+    Texture2D texRoach;
+
+    // Platform Textures
+    Texture2D texBasic;
+    Texture2D texMushroom;
+    Texture2D texFlower;
+    Texture2D texGameOver;
     
     // Level Data
     std::vector<Level> levels;
@@ -79,10 +89,10 @@ std::vector<Level> InitLevels() {
     lvl1.spawnPoint = {50, (float)(SCREEN_HEIGHT - 100)};
     lvl1.platforms = {
         {{400, 600, 100, 10}, basic},
-        {{600, 500, 100, 10}, mushroom},
-        {{800, 500, 100, 10}, flower},
+        {{600, 500, 100, 100}, mushroom},
+        {{800, 500, 100, 100}, flower},
         {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
-    lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {30, 30}, false, 0}};
+    lvl1.enemies = {{lvl1.platforms[0].position.x + lvl1.platforms[0].position.width / 2, lvl1.platforms[0].position.y, {160, 160}, false, 0, spider}};
     lvl1.clouds = {
         {{100, 250, 200, 40}, 150.0f, 50, 600, true},
         {{700, 350, 250, 40}, 100.0f, 400, 900, false}};
@@ -198,7 +208,7 @@ void UpdateGameplay(GameState &game, float delta) {
     // Check for specific death condition if needed, or rely on player update
     if (game.player.healthPoints <= 0) {
         // Handle death (e.g., reset level or game over)
-        ResetPlayer(game);
+        game.currentScreen = GAME_OVER;
     }
 
   // 1. Update Player
@@ -366,7 +376,23 @@ void DrawGameplay(GameState &game) {
 
   // Platforms
   for (const auto& plat : currentLvlData.platforms) {
-		drawPlatform(plat);
+		// Pick the texture based on type
+      Texture2D *t = &game.texBasic; // Default
+      if (plat.type == mushroom) t = &game.texMushroom;
+      if (plat.type == flower) t = &game.texFlower;
+
+      // Calculate source (full texture)
+      Rectangle source = {0, 0, (float)t->width, (float)t->height};
+      
+      // Calculate destination (platform position)
+      Rectangle dest = plat.position;
+
+      // Draw Texture
+      DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
+      
+      // Optional: Keep hitbox for debug
+      // DrawRectangleLinesEx(dest, 2.0f, RED);
+  
   }
 
 
@@ -385,8 +411,8 @@ void DrawGameplay(GameState &game) {
 
 // Player (Primitive drawing, can be replaced with sprite logic)
   Vector2 playerPosVisual = {game.player.position.x - game.player.size.x / 2, game.player.position.y - game.player.size.y};
-  DrawRectangleV(playerPosVisual, game.player.size, BLUE);
-  DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
+  // DrawRectangleV(playerPosVisual, game.player.size, BLUE);
+  // DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
   // --- HP BAR ---
   float barWidth = 6.0f;
   float barHeight = 50.0f; 
@@ -420,7 +446,11 @@ void DrawGameplay(GameState &game) {
 	if (isEnemyActive()) {
 		for (Enemy &enemy : currentLvlData.enemies) {
 			int pi = enemy.patrolPlatformIndex;
-			updateEnemy(enemy, currentLvlData.platforms[pi].position, GetFrameTime());
+			  // 1. Select the correct texture
+        Texture2D currentTex = (enemy.type == spider) ? game.texSpider : game.texRoach;
+          
+        // 2. Call the function (Updates position AND Draw)
+        updateEnemy(enemy, currentLvlData.platforms[pi].position, GetFrameTime(), currentTex);
 		}
 	}
 
@@ -467,8 +497,18 @@ int main() {
 	SearchAndSetResourceDir("resources");
 
 	GameState game;
+  game.player.texture = LoadTexture("my_player.png");
+  game.texGameOver = LoadTexture("game_over.png"); 
+  // LOAD PLATFORM TEXTURES (Make sure you have these files!)
+  //game.texBasic = LoadTexture("platform_basic.png");
+  game.texMushroom = LoadTexture("platform_mushroom.png");
+  game.texFlower = LoadTexture("platform_flower.png");
+
+  game.texSpider = LoadTexture("spider.png"); 
+  game.texRoach = LoadTexture("roach.png");   
+
 	game.levels = InitLevels();
-	game.player.size = {40, 80};
+	game.player.size = {100, 160};
 	ResetPlayer(game);
 
 	InitParticles();
@@ -501,6 +541,12 @@ int main() {
 				UpdateMenu(game, true);
 				if (IsKeyPressed(KEY_ESCAPE)) game.currentScreen = GAMEPLAY;
 				break;
+      case GAME_OVER:
+        if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_ENTER)) {
+            ResetPlayer(game);
+            game.currentScreen = GAMEPLAY;
+        }
+        break;
 			case ENDING:
 				if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP)) game.currentScreen = CREDIT;
 				break;
@@ -533,6 +579,19 @@ int main() {
 				DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.8f));
 				DrawMenu("PAUSED", "RESUME", "QUIT TO TITLE", game.menuOption);
 				break;
+      case GAME_OVER:
+      {
+        // Draw the image to fit the screen
+        DrawTexturePro(game.texGameOver, 
+            (Rectangle){0,0, (float)game.texGameOver.width, (float)game.texGameOver.height}, 
+            (Rectangle){0,0, SCREEN_WIDTH, SCREEN_HEIGHT}, 
+            (Vector2){0,0}, 0.0f, WHITE);
+        
+        // Instructions
+        const char* text = "PRESS 'R' TO RESTART";
+        DrawText(text, SCREEN_WIDTH/2 - MeasureText(text, 30)/2, SCREEN_HEIGHT - 100, 30, WHITE);
+      }
+        break;
 			case ENDING:
 				DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLUE);
 				DrawText("ENDING SCREEN", SCREEN_WIDTH/2 - MeasureText("ENDING SCREEN", 40)/2, SCREEN_HEIGHT/4, 40, LIGHTGRAY);
@@ -548,8 +607,12 @@ int main() {
 
 		EndDrawing();
 	}
-
+  UnloadTexture(game.texMushroom);
+  UnloadTexture(game.texFlower);
 	UnloadRenderTexture(game.lightLayer);
+  UnloadTexture(game.player.texture);
+  UnloadTexture(game.texSpider);
+  UnloadTexture(game.texRoach);
 	CloseWindow();
 	return 0;
 }
