@@ -384,8 +384,8 @@ void DrawGameplay(GameState &game) {
 
 // Player (Primitive drawing, can be replaced with sprite logic)
   Vector2 playerPosVisual = {game.player.position.x - game.player.size.x / 2, game.player.position.y - game.player.size.y};
-  DrawRectangleV(playerPosVisual, game.player.size, BLUE);
-  DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
+  // DrawRectangleV(playerPosVisual, game.player.size, BLUE);
+  // DrawRectangleLinesEx((Rectangle){playerPosVisual.x, playerPosVisual.y, game.player.size.x, game.player.size.y}, 2.0f, BLACK);
   // --- HP BAR ---
   float barWidth = 6.0f;
   float barHeight = 50.0f; 
@@ -466,8 +466,13 @@ int main() {
 	SearchAndSetResourceDir("resources");
 
 	GameState game;
+  game.player.texture = LoadTexture("my_player.png");
+    // DEBUG CHECK: If the terminal says width is 0, the file was not found!
+  if (game.player.texture.id == 0) {
+      std::cout << "ERROR: Player texture failed to load! Check file path." << std::endl;
+  } 
 	game.levels = InitLevels();
-	game.player.size = {40, 80};
+	game.player.size = {80, 160};
 	ResetPlayer(game);
 
 	InitParticles();
@@ -549,6 +554,7 @@ int main() {
 	}
 
 	UnloadRenderTexture(game.lightLayer);
+  UnloadTexture(game.player.texture);
 	CloseWindow();
 	return 0;
 }

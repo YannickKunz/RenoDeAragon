@@ -122,14 +122,23 @@ void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<
   }
 
 }
-
+// ...existing code...
 void drawPlayer(Player &player) {
-	Vector2 playerPosition = {player.position.x - player.size.x / 2,
-		player.position.y - player.size.y};
-	DrawRectangleV(playerPosition, player.size, BLUE);
+    // CHANGE: Use Rectangle instead of Vector2
+    // This defines where on the screen the player will be drawn
+    Rectangle destRect = {
+        player.position.x - player.size.x / 2,
+        player.position.y - player.size.y,
+        player.size.x,
+        player.size.y
+    };
 
-	DrawRectangleLinesEx((Rectangle){player.position.x - player.size.x / 2,
-			player.position.y - player.size.y,
-			player.size.x, player.size.y},
-			2.0f, BLACK);
+    // Define the part of the texture to draw (the whole image)
+    Rectangle sourceRect = { 0.0f, 0.0f, (float)player.texture.width, (float)player.texture.height };
+
+    // Draw the texture fitted into the destRect
+    DrawTexturePro(player.texture, sourceRect, destRect, (Vector2){0, 0}, 0.0f, WHITE);
+
+    // Optional: Draw the outline (for debugging)
+    //DrawRectangleLinesEx(destRect, 2.0f, BLACK);
 }
