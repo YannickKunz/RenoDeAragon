@@ -134,6 +134,21 @@ std::vector<Level> InitLevels() {
     lvl4.exitZone = {1000, 600, 200, 200};
     levels.push_back(lvl4);
 
+
+    Level lvl5;
+    lvl5.spawnPoint = {100, 600};
+    lvl5.platforms = {
+        {{100, 650, 1050, 20}, basic},
+        {{300, 650, 150, 20}, basic},
+        {{600, 600, 100, 10}, basic},
+        {{800, 400, 100, 10}, basic},
+        {{1000, 300, 100, 10}, basic},
+        {{0, (float)(SCREEN_HEIGHT - 50), (float)SCREEN_WIDTH, 50}, basic}};
+    //lvl5.enemy = {{lvl5.platforms[2].position.x + lvl5.platforms[2].position.width / 2, lvl5.platforms[2].position.y}, {30, 30}, false, 4};
+    lvl5.clouds = {{{300, 200, 150, 40}, 200.0f, 200, 900, true}, {{600, 400, 150, 40}, 200.0f, 300, 1000, false}};
+    lvl5.sunPosition = {256.0f, -55.5f};
+    lvl5.exitZone = {1188, 688, 128, 128};
+    levels.push_back(lvl5);
     return levels;
 }
 
@@ -182,6 +197,12 @@ void UpdateGameplay(GameState& game, float delta) {
     // Check Burning logic (1 HP per 60 frames)
     if (game.isPlayerBurning) {
         game.burnTimer++;
+        // EMIT PARTICLE (Every 15 frames)
+        if (game.burnTimer % 15 == 0) {
+            // Emitting from roughly the center of the player
+            Vector2 firePos = { game.player.position.x, game.player.position.y - game.player.size.y / 2 };
+            EmitParticle(&game.particleSystem, firePos, FIRE);
+        }
         if (game.burnTimer >= 60) {
             game.player.healthPoints -= 1;
             game.burnTimer = 0;
@@ -398,8 +419,8 @@ void DrawGameplay(GameState& game) {
     UpdateParticles(&game.particleSystem);
     if (game.isPlayerBurning) {
         Vector2 center = {game.player.position.x, game.player.position.y - game.player.size.y / 2};
-        EmitParticle(&game.particleSystem, center, FIRE);
-        EmitParticle(&game.particleSystem, center, FIRE);
+        //EmitParticle(&game.particleSystem, center, FIRE);
+        //EmitParticle(&game.particleSystem, center, FIRE);
         DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
     } else {
         DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
