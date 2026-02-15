@@ -286,11 +286,7 @@ void UpdateGameplay(GameState &game, float delta) {
     if (game.burnTimer >= 60) {
       game.player.healthPoints -= 1;
       game.burnTimer = 0;
-      // std::cout << "Player burned! HP: " << game.player.healthPoints <<
-      // std::endl;
     }
-  } else {
-    // game.burnTimer = 0; // Optional: Reset timer if they find shade
   }
   // Check for specific death condition if needed, or rely on player update
   if (game.player.healthPoints <= 0) {
@@ -470,24 +466,6 @@ void DrawGameplay(GameState &game) {
 
   // Platforms
   for (const auto &plat : currentLvlData.platforms) {
-    // Pick the texture based on type
-    // Texture2D *t = &game.texBasic; // Default
-    // if (plat.type == mushroom) t = &game.texMushroom;
-    // if (plat.type == flower) t = &game.texFlower;
-
-    // Calculate source (full texture)
-    // Rectangle source = {0, 0, (float)t->width, (float)t->height};
-
-    // Calculate destination (platform position)
-    // Rectangle dest = plat.position;
-
-    // Draw Texture
-    // DrawTexturePro(*t, source, dest, {0, 0}, 0.0f, WHITE);
-
-    // Optional: Keep hitbox for debug
-    // DrawRectangleLinesEx(dest, 2.0f, RED);
-    // Pass the textures here.
-    // If you don't have one loaded yet, just pass "0" or a blank Texture2D
     drawPlatform(plat, game.texMushroom, game.texFlower, game.texBasic);
   }
 
@@ -591,21 +569,7 @@ void DrawGameplay(GameState &game) {
 
   // Particles
   UpdateParticles(&game.particleSystem);
-  // if (game.isPlayerBurning) {
-  // 	Vector2 center = {game.player.position.x, game.player.position.y -
-  // game.player.size.y / 2}; 	EmitParticle(&game.particleSystem, center,
-  // FIRE); 	EmitParticle(&game.particleSystem, center, FIRE);
-  // 	DrawText("BURNING!", SCREEN_WIDTH / 2, 50, 40, RED);
-  // } else {
-  // 	DrawText("SAFE", SCREEN_WIDTH / 2, 50, 40, GREEN);
-  // }
   DrawParticles(&game.particleSystem);
-
-  // Debug
-  DrawText(TextFormat("Level: %d", game.currentLevelIndex + 1), 10, 10, 20,
-           WHITE);
-  bool isDay = currentLvlData.isDay;
-  DrawText(TextFormat("isDay: %d", isDay), 60, 60, 40, WHITE);
 }
 
 void DrawMenu(const char *title, const char *opt1, const char *opt2,
@@ -812,8 +776,8 @@ int main() {
   UnloadTexture(game.player.texture);
   UnloadTexture(game.texSpider);
   UnloadTexture(game.texRoach);
-  // UnloadTexture(game.texGameOver);
-  // UnloadTexture(game.texGameOver2);
+  UnloadTexture(game.texGameOver);
+  UnloadTexture(game.texGameOver2);
   UnloadTexture(game.texExit);
 
   UnloadMusicStream(game.music.first);
