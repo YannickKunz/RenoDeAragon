@@ -18,8 +18,9 @@ typedef struct Platform {
   Texture2D texture;
 } Platform;
 
-void drawPlatform(const Platform &platform, Texture2D mushroomTex, Texture2D flowerTex, Texture2D basicTex);
+void drawPlatform(const Platform &platform, Texture2D mushroomTex,
+                  Texture2D flowerTex, Texture2D basicTex, bool playerToggle);
 
-bool isPlatformActive(Platform &platform);
+bool isPlatformActive(const Platform &platform, bool playerToggle);
 
 #endif

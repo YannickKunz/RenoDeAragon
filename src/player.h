@@ -4,10 +4,9 @@
 #include "enemy.h"
 #include "platform.h"
 #include "raylib.h"
+#include <cmath>
 #include <iostream>
 #include <vector>
-#include <cmath>
-
 
 typedef struct Player {
   Vector2 position;
@@ -19,14 +18,17 @@ typedef struct Player {
   int healthPoints;
 
   Texture2D texture;
-  Rectangle frameRec;      // The current slice of the texture to draw
-  int currentFrame;        // 0, 1, 2, etc.
-  int framesCounter;       // Counts game frames to control speed
-  int framesSpeed;         // How fast it animates (e.g., 8 frames per second)
+  Rectangle frameRec; // The current slice of the texture to draw
+  int currentFrame;   // 0, 1, 2, etc.
+  int framesCounter;  // Counts game frames to control speed
+  int framesSpeed;    // How fast it animates (e.g., 8 frames per second)
   bool isFacingRight;
 } Player;
 
-void updatePlayer(Player &player, std::vector<Platform> &platforms, std::vector<Enemy> &enemies, const float delta, Vector2 spawnPoint);
+void updatePlayer(Player &player, std::vector<Platform> &platforms,
+                  std::vector<Enemy> &enemies, const float delta,
+                  Vector2 spawnPoint, bool &playerToggle, Sound &sndJump,
+                  Sound &sndWalk);
 
 void drawPlayer(Player &player);
 

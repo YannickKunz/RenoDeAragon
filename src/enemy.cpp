@@ -1,47 +1,80 @@
 #include "enemy.h"
 #include <iostream>
 
-extern bool playerToggle;
+bool isEnemyActive(bool playerToggle) { return !playerToggle; }
 
-bool isEnemyActive() {
-  return !playerToggle;
-}
+void updateEnemy(Enemy &enemy, Rectangle platform, const float delta,
+                 Texture2D enemyTexture) {
+  // Initialize animation if needed
+  if (enemy.framesSpeed == 0) {
+    enemy.framesSpeed = 8;
+    enemy.currentFrame = 0;
+    enemy.framesCounter = 0;
+    int numFrames = (enemy.type == spider) ? 5 : 1;
+    enemy.frameRec = {0.0f, 0.0f, (float)enemyTexture.width / numFrames,
+                      (float)enemyTexture.height};
+  }
 
-void updateEnemy(Enemy &enemy, Rectangle platform, const float delta, Texture2D enemyTexture) {
-	// 1. Patrol Logic
-	int direction = 1;
-	if (enemy.type == spider) {
-		if ((!enemy.patrolSide && enemy.position.x <= platform.x) ||
-				(enemy.patrolSide && enemy.position.x >= platform.x + platform.width)) {
-			enemy.patrolSide = !enemy.patrolSide;
-		}
+  // Animation Update
+  if (enemy.type == spider) {
+    enemy.framesCounter++;
+    if (enemy.framesCounter >= (60 / enemy.framesSpeed)) {
+      enemy.framesCounter = 0;
+      enemy.currentFrame++;
+      if (enemy.currentFrame > 4)
+        enemy.currentFrame = 0;
+      enemy.frameRec.x =
+          (float)enemy.currentFrame * (float)enemyTexture.width / 5;
+    }
+  } else {
+    enemy.frameRec = {0.0f, 0.0f, (float)enemyTexture.width,
+                      (float)enemyTexture.height};
+  }
 
-		direction = enemy.patrolSide ? 1 : -1;
-		enemy.position.x += direction * ENEMY_SPEED * delta;
-	}
+  // Patrol Logic
+  if (enemy.patrolSide) {
+    enemy.position.x += ENEMY_SPEED * delta;
+    if (enemy.position.x > platform.x + platform.width) {
+      enemy.patrolSide = false;
+    }
+    // Face Left? (Depends on sprite)
+    if (enemy.frameRec.width > 0)
+      enemy.frameRec.width *= -1;
+  } else {
+    enemy.position.x -= ENEMY_SPEED * delta;
+    if (enemy.position.x < platform.x) {
+      enemy.patrolSide = true;
+    }
+    // Face Right
+    if (enemy.frameRec.width < 0)
+      enemy.frameRec.width *= -1;
+  }
 
-	// 2. Define Visual Size (Scale up the texture relative to the hitbox)
-	float scaleFactor = 3.0f; // Adjust this if the roach looks too big/small
-	float drawWidth = enemy.size.x * scaleFactor;
-	float drawHeight = enemy.size.y * scaleFactor;
+  // Draw
+  float scaleFactor = 1.0f; // Reset to 1.0
 
+  Rectangle source = enemy.frameRec;
 
+  if (enemy.type == spider) {
+    // Manual Trim (Log: y=1229, h=326)
+    source.y += 1200.0f;
+    source.height = 400.0f;
+    scaleFactor = 1.0f;
+  }
+  // Roach is Auto-Cropped, so its frameRec is correct (tight).
 
-	// 3. Define Source (Whole texture)
-	Rectangle sourceRect = { 0.0f, 0.0f, (float)enemyTexture.width, (float)enemyTexture.height };
-	// Center the drawing rectangle over the physical position
-	Rectangle destRect = {
-		enemy.position.x - drawWidth / 2,     // Center X
-		enemy.position.y - drawHeight + 10,   // Align Bottom (with small offset)
-		drawWidth,
-		drawHeight
-	};
+  float drawHeight = enemy.size.y * scaleFactor;
+  float drawWidth = fabs(source.width) * (drawHeight / source.height);
 
-	// 4. Flip Logic (If moving left, flip width)
-	sourceRect.width *= direction;
+  // Fix Roach drawing if needed (it might be thin)
+  if (enemy.type == roach) {
+    drawWidth =
+        fabs(enemy.frameRec.width) * (drawHeight / enemy.frameRec.height);
+  }
 
-	DrawTexturePro(enemyTexture, sourceRect, destRect, {0, 0}, 0.0f, WHITE);
-// Optional: Debug Box (Shows the actual hitbox)
-// Rectangle hitBox = { enemy.position.x - enemy.size.x/2, enemy.position.y - enemy.size.y, enemy.size.x, enemy.size.y };
-// DrawRectangleLinesEx(hitBox, 2.0f, RED);
+  Rectangle destRect = {enemy.position.x - drawWidth / 2,
+                        enemy.position.y - drawHeight + 10, drawWidth,
+                        drawHeight};
+
+  DrawTexturePro(enemyTexture, source, destRect, {0, 0}, 0.0f, WHITE);
 }
