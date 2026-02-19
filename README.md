@@ -1,6 +1,8 @@
 # BewareTheSun
 
+## Web version of the game
 
+[Play BewareTheSun](https://bewarethesun.netlify.app/)
 
 ## Installation
 
