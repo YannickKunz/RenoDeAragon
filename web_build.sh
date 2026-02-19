@@ -90,7 +90,7 @@ emcc -o "$OUT_DIR/index.html" \
     -s USE_GLFW=3 \
     -s ALLOW_MEMORY_GROWTH \
     -s TOTAL_MEMORY=67108864 \
-    --shell-file "$RAYLIB_SRC/minshell.html" \
+    --shell-file "src/web_shell/shell.html" \
     -I"$RAYLIB_SRC" \
     -Isrc/ \
     -DPLATFORM_WEB \
